@@ -1,7 +1,9 @@
 #include "../includes/webserv.hpp"
 
-int     main(void)
-{
 
-    return (0);
+int main() {
+    std::string ip = "0.0.0.0";
+    TcpServer server(ip, 8080);
+    server.run();
+    return 0;
 }
