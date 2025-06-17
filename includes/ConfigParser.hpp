@@ -7,6 +7,14 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <sstream>
+
+enum BracketState 
+{
+    B_DEFAULT,
+    B_OPEN,
+    B_CLOSED
+};
 
 struct LocationConfig
 {
@@ -33,8 +41,11 @@ struct ServerConfig
 class ConfigParser
 {
     private:
-        std::vector<ServerConfig> _servers;
-        void    parseFile(const std::string& filename);
+        std::vector<ServerConfig>   _servers;
+        void                        parseFile(const std::string& filename);
+        std::string                 trim(const std::string& str);
+        std::vector<std::string>    split(const std::string& str, char delim);
+        size_t                      convertValueToBytes(std::string line);
 
     public:
         ConfigParser();
