@@ -6,6 +6,7 @@ TcpServer::TcpServer(std::string& ip_address, int port_address)
     if (!setupServerSocket()) {
         std::cerr << "Failed to set up server socket" << std::endl;
     }
+    (void)addr_len;
 }
 
 TcpServer::~TcpServer() {
@@ -83,13 +84,28 @@ void    TcpServer::handleClientData(int client_fd) {
         }
     }
     else {
-
         std::string& request = client_buffers[client_fd];
         request += std::string(buffer, bytes);
 
+        // Print the full HTTP request to the terminal
+        std::cout << "=== HTTP Request from client " << client_fd << " ===" << std::endl;
+        std::cout << request << std::endl;
+        std::cout << "==============================================" << std::endl;
+
         if (request.find("\r\n\r\n") != std::string::npos) {
-            std::string response = "HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello, world!";
-            send(client_fd, response.c_str(), response.size(), 0);
+            std::string html = 
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/html\r\n"
+                "Content-Length: 280\r\n"
+                "\r\n"
+                "<!DOCTYPE html>"
+                "<html>"
+                "<head><title>My Colored Page</title></head>"
+                "<body style='background-color:#282c34; color:#61dafb; font-family:sans-serif; text-align:center; padding-top:50px;'>"
+                "<h1>Hello, colorful world!</h1>"
+                "<p>This is a basic HTML page with a background and colored text.</p>"
+                "</body></html>";
+            send(client_fd, html.c_str(), html.size(), 0);
             request.clear();
         }
     }
