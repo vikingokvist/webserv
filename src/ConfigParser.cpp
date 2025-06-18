@@ -49,36 +49,12 @@ std::string    ConfigParser::parseFile(const std::string& filename) {
     return (buffer);
 }
 
-/*struct LocationConfig
-{
-    std::string path;
-    std::string root;
-    std::string index;
-    std::set<std::string> methods;
-    bool auto_index = false;
-    std::string redirect;
-    std::string cgi_extension;
-    std::string upload_store;
+struct Vector4 {
+    std::stack<std::string>             bracket_stack;
+    std::string                         found_del;
+    std::string                         token;
+    ServerConfig                        cur_server;
 };
-
-struct ServerConfig
-{
-    std::string host;
-    int         port;
-    std::vector<std::string> server_names;
-    std::map<int, std::string> error_pages;
-    size_t client_max_body_size = 1 * 1024 * 1024;
-    std::vector<LocationConfig> locations;
-};
-*/
-
-// server {
-//     listen 127.0.0.1:8080;                          # Bind to this IP and port
-//     server_name mysite.com www.mysite.com;         # Accept requests for these hostnames
-
-//     client_max_body_size 2M;                        # Limit on request body size (e.g. file uploads)
-//     error_page 404 /errors/404.html;               # Custom error page for 404
-//     error_page 500 /errors/500.html;        
 
 void    ConfigParser::parseConfigFile(std::vector<std::string> config_array) {
 
@@ -92,46 +68,237 @@ void    ConfigParser::parseConfigFile(std::vector<std::string> config_array) {
 
         token = *it;
         handleBracketStack(bracket_stack, token, found_del, cur_server);
-        if (token == "listen" && found_del == "server") {
-            it++;
-            if (it != config_array.end()) {
-                token = *it;
-                size_t  colon_pos = token.find(':');
-                if (colon_pos != std::string::npos) {
-                    cur_server.ips_and_ports.push_back(std::make_pair(token.substr(0, colon_pos), std::atoi(token.substr(colon_pos + 1).c_str())));
-                }
-            }
-        }
-        if (token == "server_name" && found_del == "server") {
-            it++;
-            for (; it != config_array.end(); ++it) {
-                token = *it;
-                if (!token.empty()) {
-                    size_t semicolon_pos = token.find(';');
-                    if (semicolon_pos != std::string::npos)
-                        token = token.substr(0, semicolon_pos);
-                    cur_server.server_names.push_back(token);
-                    if (semicolon_pos != std::string::npos)
-                        break ;
-                }
-            }
-        }
-        
+        if (found_del == "server") {
 
+            if (token == "server")
+                cur_server = ServerConfig();
+            else if (token == "listen")
+                ConfigParser::listenToken(token, config_array, it, cur_server);
+            else if (token == "server_name")
+                ConfigParser::serverNameToken(token, config_array, it, cur_server);
+            else if (token == "client_max_body_size")
+                ConfigParser::clientMaxBodySizeToken(token, config_array, it, cur_server);
+            else if (token == "error_page")
+                ConfigParser::errorPageToken(token, config_array, it, cur_server); 
+        }
+        else if (found_del == "location") {
 
+            LocationConfig cur_loc;
+            token = *it++;
+            cur_loc.path = token;
+            token = *it++;
+            if (token == "root")
+                ConfigParser::rootToken(token, config_array, it, cur_loc);
+            if (token == "index")
+                ConfigParser::indexToken(token, config_array, it, cur_loc);
+            if (token == "methods")
+                ConfigParser::methodsToken(token, config_array, it, cur_loc);
+            if (token == "autoindex")
+                ConfigParser::autoIndexToken(token, config_array, it, cur_loc);
+            if (token == "return")
+                ConfigParser::redirectToken(token, config_array, it, cur_loc);
+            if (token == "cgi_ext")
+                ConfigParser::cgiExtensionToken(token, config_array, it, cur_loc);
+            if (token == "upload_store")
+                ConfigParser::uploadStoreToken(token, config_array, it, cur_loc);
+        }
+        else
+            _servers.push_back(cur_server);
     }
     if (!bracket_stack.empty())
         throw (ConfigParser::MisconfigurationException());
 }
 
+void    ConfigParser::rootToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    it++;
+    if (it != config_array.end()) {
+
+        token = *it;
+        if (!token.empty() && token.back() == ';') {
+
+            token.pop_back();
+            cur_loc.root = token;
+            token = *it++;
+        }
+    }
+}
+
+void    ConfigParser::indexToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    it++;
+    if (it != config_array.end()) {
+        token = *it;
+        if (!token.empty() && token.back() == ';') {
+
+            token.pop_back();
+            cur_loc.index = token;
+            token = *it++;
+        }
+    }
+}
+
+void    ConfigParser::methodsToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    bool    stop = false;
+    it++;
+    for (; it != config_array.end(); ++it) {
+
+        token = *it;
+        if (!token.empty() && token.back() == ';') {
+
+            stop = true;
+            token.pop_back();
+        }
+        cur_loc.methods.insert(token);
+        if (stop == true)
+            break ;
+    }
+}
+
+void    ConfigParser::autoIndexToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    it++;
+    if (it != config_array.end()) {
+        token = *it;
+        if (!token.empty() && token.back() == ';')
+            token.pop_back();
+        if (token == "on")
+            cur_loc.auto_index = true;
+        else if (token == "off")
+            cur_loc.auto_index = false;
+    }
+}
+
+void    ConfigParser::redirectToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    ++it;
+    if (it != config_array.end()) {
+
+        token = *it;
+        cur_loc.redirect_code = std::atoi(token.c_str());
+        ++it;
+        if (it != config_array.end()) {
+
+            token = *it;
+            if (!token.empty() && token.back() == ';')
+                token.pop_back();
+            cur_loc.redirect = token;
+        }
+    } 
+}
+void    ConfigParser::cgiExtensionToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    it++;
+    for (; it != config_array.end(); ++it) {
+        token = *it;
+        if (!token.empty()) {
+            size_t semicolon_pos = token.find(';');
+            if (semicolon_pos != std::string::npos)
+                token.pop_back();
+            cur_loc.cgi_extensions.insert(token);
+            if (semicolon_pos != std::string::npos)
+                break ;
+        }
+    }
+}
+
+void    ConfigParser::uploadStoreToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
+
+    it++;
+    if (it != config_array.end()) {
+
+        token = *it;
+        if (!token.empty() && token.back() == ';') {
+
+            token.pop_back();
+            cur_loc.upload_store = token;
+        }
+    }
+}
+
+
+void    ConfigParser::errorPageToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server) {
+
+    it++;
+    if (it != config_array.end()) {
+
+        token = *it;
+        std::string temp = token;
+        it++;
+        token = *it;
+        cur_server.error_pages[std::atoi(temp.c_str())] = token;
+    }
+}
+
+void    ConfigParser::clientMaxBodySizeToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server) {
+
+    size_t      len = token.size();
+    char        c = token[len - 1];
+    size_t      multiplier = 1;
+    std::string number_part = token;
+    size_t      numer = 0;
+
+    it++;
+    if (it != config_array.end()) {
+        token = *it;
+        if (!token.empty() && token.back() == ';')
+            token.pop_back();
+    }
+    if (c == 'K' || c == 'k') {
+
+        multiplier = 1024ULL;
+        number_part = token.substr(0, len - 1);
+    }
+    else if (c == 'M' || c == 'm') {
+
+        multiplier = 1024ULL * 1024ULL;
+        number_part = token.substr(0, len - 1);
+    }
+    else if (c == 'G' || c == 'g') {
+
+        multiplier = 1024ULL * 1024ULL * 1024ULL;
+        number_part = token.substr(0, len - 1);
+    }
+    cur_server.client_max_body_size = std::stoul(number_part) * multiplier;
+}
+
+
+void    ConfigParser::serverNameToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server) {
+
+    it++;
+    for (; it != config_array.end(); ++it) {
+        token = *it;
+        if (!token.empty()) {
+            size_t semicolon_pos = token.find(';');
+            if (semicolon_pos != std::string::npos)
+                token.pop_back();
+            cur_server.server_names.push_back(token);
+            if (semicolon_pos != std::string::npos)
+                break ;
+        }
+    }
+}
+
+void    ConfigParser::listenToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server) {
+
+    size_t  colon_pos;
+
+    it++;
+    if (it != config_array.end()) {
+
+        token = *it;
+        if (!token.empty() && token.back() == ';')
+            token.pop_back();
+        colon_pos = token.find(':');
+        if (colon_pos != std::string::npos)
+            cur_server.ips_and_ports.push_back(std::make_pair(token.substr(0, colon_pos), std::atoi(token.substr(colon_pos + 1).c_str())));
+    }
+}
+
 void    ConfigParser::handleBracketStack(std::stack<std::string>& bracket_stack, std::string token, std::string& found_del, ServerConfig& cur_server) {
 
-    if (token == "server") {
-
-        cur_server = ServerConfig();
-        found_del = token;
-    }
-    if (token == "location") {
+    if (token == "location" || token == "server") {
 
         found_del = token;
     }
