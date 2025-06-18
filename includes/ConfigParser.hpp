@@ -10,6 +10,8 @@
 #include <stack>
 #include <map>
 #include <set>
+#include <cstdlib>
+
 
 
 struct LocationConfig
@@ -42,7 +44,7 @@ class ConfigParser
         std::string                 parseFile(const std::string& filename);
         std::string                 trim(const std::string& str);
         void                        parseConfigFile(std::vector<std::string> config_array);
-        void                        handleBracketStack(std::stack<std::string>& bracket_stack, std::string token, std::string& found_del, ServerConfig& cur_server);
+        void                        handleBracketStack(std::stack<std::string>& bracket_stack, std::string token, std::string& found_del);
         void                        listenToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server);
         void                        serverNameToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server);
         void                        clientMaxBodySizeToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, ServerConfig& cur_server);
@@ -54,6 +56,7 @@ class ConfigParser
         void                        methodsToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc);
         void                        indexToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc);
         void                        rootToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc);
+        size_t                      str_to_size_t(const std::string& s);
 
 
     public:

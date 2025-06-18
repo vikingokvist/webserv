@@ -49,12 +49,6 @@ std::string    ConfigParser::parseFile(const std::string& filename) {
     return (buffer);
 }
 
-struct Vector4 {
-    std::stack<std::string>             bracket_stack;
-    std::string                         found_del;
-    std::string                         token;
-    ServerConfig                        cur_server;
-};
 
 void    ConfigParser::parseConfigFile(std::vector<std::string> config_array) {
 
@@ -67,7 +61,7 @@ void    ConfigParser::parseConfigFile(std::vector<std::string> config_array) {
     for (; it != config_array.end(); ++it) {
 
         token = *it;
-        handleBracketStack(bracket_stack, token, found_del, cur_server);
+        handleBracketStack(bracket_stack, token, found_del);
         if (found_del == "server") {
 
             if (token == "server")
@@ -102,11 +96,9 @@ void    ConfigParser::parseConfigFile(std::vector<std::string> config_array) {
             if (token == "upload_store")
                 ConfigParser::uploadStoreToken(token, config_array, it, cur_loc);
         }
-        else
-            _servers.push_back(cur_server);
     }
-    if (!bracket_stack.empty())
-        throw (ConfigParser::MisconfigurationException());
+    _servers.push_back(cur_server);
+
 }
 
 void    ConfigParser::rootToken(std::string& token, std::vector<std::string>& config_array, std::vector<std::string>::iterator& it, LocationConfig& cur_loc) {
@@ -115,9 +107,9 @@ void    ConfigParser::rootToken(std::string& token, std::vector<std::string>& co
     if (it != config_array.end()) {
 
         token = *it;
-        if (!token.empty() && token.back() == ';') {
+        if (!token.empty() && token[token.size() - 1] == ';') {
 
-            token.pop_back();
+            token.erase(token.size() - 1);
             cur_loc.root = token;
             token = *it++;
         }
@@ -129,9 +121,9 @@ void    ConfigParser::indexToken(std::string& token, std::vector<std::string>& c
     it++;
     if (it != config_array.end()) {
         token = *it;
-        if (!token.empty() && token.back() == ';') {
+        if (!token.empty() && token[token.size() - 1] == ';') {
 
-            token.pop_back();
+            token.erase(token.size() - 1);
             cur_loc.index = token;
             token = *it++;
         }
@@ -145,10 +137,10 @@ void    ConfigParser::methodsToken(std::string& token, std::vector<std::string>&
     for (; it != config_array.end(); ++it) {
 
         token = *it;
-        if (!token.empty() && token.back() == ';') {
+        if (!token.empty() && token[token.size() - 1] == ';') {
 
             stop = true;
-            token.pop_back();
+            token.erase(token.size() - 1);
         }
         cur_loc.methods.insert(token);
         if (stop == true)
@@ -161,8 +153,8 @@ void    ConfigParser::autoIndexToken(std::string& token, std::vector<std::string
     it++;
     if (it != config_array.end()) {
         token = *it;
-        if (!token.empty() && token.back() == ';')
-            token.pop_back();
+        if (!token.empty() && token[token.size() - 1] == ';')
+            token.erase(token.size() - 1);
         if (token == "on")
             cur_loc.auto_index = true;
         else if (token == "off")
@@ -181,8 +173,8 @@ void    ConfigParser::redirectToken(std::string& token, std::vector<std::string>
         if (it != config_array.end()) {
 
             token = *it;
-            if (!token.empty() && token.back() == ';')
-                token.pop_back();
+            if (!token.empty() && token[token.size() - 1] == ';')
+                token.erase(token.size() - 1);
             cur_loc.redirect = token;
         }
     } 
@@ -195,7 +187,7 @@ void    ConfigParser::cgiExtensionToken(std::string& token, std::vector<std::str
         if (!token.empty()) {
             size_t semicolon_pos = token.find(';');
             if (semicolon_pos != std::string::npos)
-                token.pop_back();
+                token.erase(token.size() - 1);
             cur_loc.cgi_extensions.insert(token);
             if (semicolon_pos != std::string::npos)
                 break ;
@@ -209,9 +201,9 @@ void    ConfigParser::uploadStoreToken(std::string& token, std::vector<std::stri
     if (it != config_array.end()) {
 
         token = *it;
-        if (!token.empty() && token.back() == ';') {
+        if (!token.empty() && token[token.size() - 1] == ';') {
 
-            token.pop_back();
+            token.erase(token.size() - 1);
             cur_loc.upload_store = token;
         }
     }
@@ -237,13 +229,12 @@ void    ConfigParser::clientMaxBodySizeToken(std::string& token, std::vector<std
     char        c = token[len - 1];
     size_t      multiplier = 1;
     std::string number_part = token;
-    size_t      numer = 0;
 
     it++;
     if (it != config_array.end()) {
         token = *it;
-        if (!token.empty() && token.back() == ';')
-            token.pop_back();
+        if (!token.empty() && token[token.size() - 1] == ';')
+            token.erase(token.size() - 1);
     }
     if (c == 'K' || c == 'k') {
 
@@ -260,7 +251,7 @@ void    ConfigParser::clientMaxBodySizeToken(std::string& token, std::vector<std
         multiplier = 1024ULL * 1024ULL * 1024ULL;
         number_part = token.substr(0, len - 1);
     }
-    cur_server.client_max_body_size = std::stoul(number_part) * multiplier;
+    cur_server.client_max_body_size = ConfigParser::str_to_size_t(number_part) * multiplier;
 }
 
 
@@ -272,7 +263,7 @@ void    ConfigParser::serverNameToken(std::string& token, std::vector<std::strin
         if (!token.empty()) {
             size_t semicolon_pos = token.find(';');
             if (semicolon_pos != std::string::npos)
-                token.pop_back();
+                token.erase(token.size() - 1);
             cur_server.server_names.push_back(token);
             if (semicolon_pos != std::string::npos)
                 break ;
@@ -288,26 +279,28 @@ void    ConfigParser::listenToken(std::string& token, std::vector<std::string>& 
     if (it != config_array.end()) {
 
         token = *it;
-        if (!token.empty() && token.back() == ';')
-            token.pop_back();
+        if (!token.empty() && token[token.size() - 1] == ';')
+            token.erase(token.size() - 1);
         colon_pos = token.find(':');
         if (colon_pos != std::string::npos)
             cur_server.ips_and_ports.push_back(std::make_pair(token.substr(0, colon_pos), std::atoi(token.substr(colon_pos + 1).c_str())));
     }
 }
 
-void    ConfigParser::handleBracketStack(std::stack<std::string>& bracket_stack, std::string token, std::string& found_del, ServerConfig& cur_server) {
+void ConfigParser::handleBracketStack(std::stack<std::string>& bracket_stack, std::string token, std::string& found_del) {
 
     if (token == "location" || token == "server") {
-
         found_del = token;
     }
     else if (token == "{" && found_del != "") {
-
         bracket_stack.push(found_del);
+        found_del = "";
     }
-    if (token == "}") {
+    else if (token == "}") {
         
+        if (bracket_stack.empty()) {
+            throw MisconfigurationException();
+        }
         found_del = bracket_stack.top();
         bracket_stack.pop();
     }
@@ -337,6 +330,19 @@ std::vector<std::string> ConfigParser::split(const std::string& str, char delimi
     return (tokens);
 }
 
+size_t      ConfigParser::str_to_size_t(const std::string& s) {
+
+    std::istringstream iss(s);
+    size_t result;
+    iss >> result;
+    return result;
+}
+
+const std::vector<ServerConfig>& ConfigParser::getServers() const {
+
+    return (_servers);
+}
+
 
 const char* ConfigParser::MisconfigurationException::what() const throw() {
 
@@ -347,3 +353,4 @@ const char* ConfigParser::FileOpenErrorException::what() const throw() {
 
     return ("Failed opening config file");
 }
+
