@@ -1,9 +1,9 @@
 #include "../includes/webserv.hpp"
+#include "../includes/ConfigParser.hpp"
 
 
-int main() {
-    std::string ip = "0.0.0.0";
-    TcpServer server(ip, 8080);
-    server.run();
+int main()
+{
+    ConfigParser parse("webserv.conf");
     return 0;
 }

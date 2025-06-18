@@ -4,17 +4,13 @@
 #include <iostream>
 #include <exception>
 #include <fstream>
+#include <sstream>
+#include <string>
 #include <vector>
+#include <stack>
 #include <map>
 #include <set>
-#include <sstream>
 
-enum BracketState 
-{
-    B_DEFAULT,
-    B_OPEN,
-    B_CLOSED
-};
 
 struct LocationConfig
 {
@@ -22,7 +18,7 @@ struct LocationConfig
     std::string             root;
     std::string             index;
     std::set<std::string>   methods;
-    bool                    auto_index = false;
+    bool                    auto_index;
     std::string             redirect;
     std::string             cgi_extension;
     std::string             upload_store;
@@ -30,11 +26,10 @@ struct LocationConfig
 
 struct ServerConfig
 {
-    std::string                 host;
-    int                         port;
+    std::vector<std::pair<std::string, int>> ips_and_ports;
     std::vector<std::string>    server_names;
     std::map<int, std::string>  error_pages;
-    size_t                      client_max_body_size = 1 * 1024 * 1024;
+    size_t                      client_max_body_size;
     std::vector<LocationConfig> locations;
 };
 
@@ -42,10 +37,11 @@ class ConfigParser
 {
     private:
         std::vector<ServerConfig>   _servers;
-        void                        parseFile(const std::string& filename);
+        std::string                 parseFile(const std::string& filename);
         std::string                 trim(const std::string& str);
-        std::vector<std::string>    split(const std::string& str, char delim);
-        size_t                      convertValueToBytes(std::string line);
+        std::vector<std::string>    split(const std::string& str, char delimiter);
+        void                        parseConfigFile(std::vector<std::string> config_array);
+        void                        handleBracketStack(std::stack<std::string>& bracket_stack, std::string token, std::string& found_del, ServerConfig& cur_server);
 
     public:
         ConfigParser();
