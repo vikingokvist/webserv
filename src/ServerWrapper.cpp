@@ -19,7 +19,7 @@ std::string             ServerWrapper::getIps(size_t ip_index) const {
 }
 
 
-size_t                  ServerWrapper::getIpSize() const {
+size_t                  ServerWrapper::getIpCount() const {
 
     return (config->ips_and_ports.size());
 }
@@ -32,22 +32,12 @@ int                     ServerWrapper::getPorts(size_t port_index) const {
 }
 
 
-size_t                  ServerWrapper::getPortSize() const {
+size_t                  ServerWrapper::getPortCount() const {
 
     if (!config) return (0);
     return (config->ips_and_ports.size());
 }
 
-
-
-// struct ServerConfig
-// {
-//     std::vector<std::pair<std::string, int> >   ips_and_ports;
-//     std::vector<std::string>                    server_names;
-//     std::map<int, std::string>                  error_pages;
-//     size_t                                      client_max_body_size;
-//     std::vector<LocationConfig>                 locations;
-// };
 std::string             ServerWrapper::getServerNames(size_t server_name_index) const {
 
     if (!config || server_name_index >= config->server_names.size()) return ("");
@@ -55,7 +45,7 @@ std::string             ServerWrapper::getServerNames(size_t server_name_index) 
 }
 
 
-size_t                  ServerWrapper::getServerNameSize() const {
+size_t                  ServerWrapper::getServerNameCount() const {
 
     if (!config) return (0);
     return (config->server_names.size());
@@ -64,84 +54,118 @@ size_t                  ServerWrapper::getServerNameSize() const {
 
 std::string             ServerWrapper::getErrorPages(int error_page_index) const {
 
-    if ()
+    if (!config) return ("");
+    std::map<int, std::string>::const_iterator it = config->error_pages.find(error_page_index);
+    if (it != config->error_pages.end())
+        return (it->second);
+    return ("");
 }
 
 
-int                     ServerWrapper::getErrorPageCode(size_t error_page_index) const {
+size_t                  ServerWrapper::getErrorPageCount() const {
 
-
-}
-
-
-size_t                  ServerWrapper::getErrorPageSize() const {
-
-
+    if (!config) return (0);
+    return (config->error_pages.size());
 }
 
 
 size_t                  ServerWrapper::getClientMaxBodySize() const {
 
-
+    if (!config) return (0);
+    return (config->client_max_body_size);
 }
 
 
-const LocationConfig&   ServerWrapper::getLocation(size_t index) const {
+const LocationConfig&   ServerWrapper::getLocation(size_t loc_index) const {
 
+    if (!config || loc_index >= config->locations.size())
+        throw (std::out_of_range("Invalid location index"));
 
+    return (config->locations[loc_index]);
 }
 
 
 size_t                  ServerWrapper::getLocationCount() const {
 
-
+    if (!config) return (0);
+    return (config->locations.size());
 }
 
 
-std::string             ServerWrapper::getLocationPath() const {
+std::string             ServerWrapper::getLocationPath(size_t loc_index) const {
 
-
+    if (!config || loc_index >= config->locations.size()) return ("");
+    return (config->locations[loc_index].path);
 }
 
 
-std::string             ServerWrapper::getLocationRoot() const {
 
+std::string             ServerWrapper::getLocationRoot(size_t loc_index) const {
 
+    if (!config || loc_index >= config->locations.size()) return ("");
+    return (config->locations[loc_index].root);
 }
 
 
-std::string             ServerWrapper::getLocationIndex() const {
+std::string             ServerWrapper::getLocationIndex(size_t loc_index) const {
 
-
+    if (!config || loc_index >= config->locations.size()) return ("");
+    return (config->locations[loc_index].index);
 }
 
 
-bool                    ServerWrapper::getIfRedirec() const {
+bool                    ServerWrapper::getAutoIndex(size_t loc_index) const {
 
+    if (!config || loc_index >= config->locations.size()) return (false);
+    return (config->locations[loc_index].auto_index);
+}
 
+std::string            ServerWrapper::getRedirect(size_t loc_index) const {
+
+    if (!config || loc_index >= config->locations.size()) return (0);
+    return (config->locations[loc_index].redirect);
+}
+
+size_t             ServerWrapper::getRedirectCode(size_t loc_index) const {
+
+    if (!config || loc_index >= config->locations.size()) return (0);
+    return (config->locations[loc_index].redirect_code);
+}
+
+std::string ServerWrapper::getMethods(size_t loc_index, size_t method_index) const {
+    
+    if (!config || loc_index >= config->locations.size()) return "";
+    const std::set<std::string>& methods = config->locations[loc_index].methods;
+
+    if (method_index >= methods.size()) return "";
+    std::set<std::string>::const_iterator it = methods.begin();
+    std::advance(it, method_index);
+    return *it;
 }
 
 
-std::string             ServerWrapper::getRedirectCode() const {
+std::string             ServerWrapper::getCgiExtensions(size_t loc_index, size_t cgi_extension_index) const {
 
+    if (!config || loc_index >= config->locations.size()) return ("");
+    const std::set<std::string>& extensions = config->locations[loc_index].cgi_extensions;
 
+    if (cgi_extension_index >= extensions.size()) return "";
+    std::set<std::string>::const_iterator it = extensions.begin();
+    std::advance(it, cgi_extension_index);
+    return (*it);
 }
 
 
-std::string             ServerWrapper::getCgiExtensions(size_t index) const {
+size_t                  ServerWrapper::getCgiExtensionCount(size_t loc_index) const {
 
-
+    if (!config || loc_index >= config->locations.size()) return (0);
+    return (config->locations[loc_index].cgi_extensions.size());
 }
 
 
-size_t                  ServerWrapper::getCgiExtensionSize() const {
+std::string             ServerWrapper::getUploadStore(size_t loc_index) const {
 
-
-}
-
-
-std::string             ServerWrapper::getUploadStore() const {
-
-
+    if (!config || loc_index >= config->locations.size()) return ("");
+    return (config->locations[loc_index].upload_store);
 }   
 

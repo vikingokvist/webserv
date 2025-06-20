@@ -20,26 +20,26 @@ class ServerWrapper
         ~ServerWrapper();
 
         std::string             getIps(size_t ip_index) const;
-        size_t                  getIpSize() const;
+        size_t                  getIpCount() const;
         int                     getPorts(size_t port_index) const;
-        size_t                  getPortSize() const;
+        size_t                  getPortCount() const;
         std::string             getServerNames(size_t server_name_index) const;
-        size_t                  getServerNameSize() const;
+        size_t                  getServerNameCount() const;
         std::string             getErrorPages(int error_page_index) const;
-        int                     getErrorPageCode(size_t error_page_index) const;
-        size_t                  getErrorPageSize() const;
+        size_t                  getErrorPageCount() const;
         size_t                  getClientMaxBodySize() const;
-        const LocationConfig&   getLocation(size_t index) const;
+        const LocationConfig&   getLocation(size_t loc_index) const;
         size_t                  getLocationCount() const;
-        std::string             getLocationPath() const;
-        std::string             getLocationRoot() const;
-        std::string             getLocationIndex() const;
-        bool                    getIfRedirec() const;
-        std::string             getRedirectCode() const;
-        std::string             getCgiExtensions(size_t index) const;
-        size_t                  getCgiExtensionSize() const;
-        std::string             getUploadStore() const;      
-
+        std::string             getLocationPath(size_t loc_index) const;
+        std::string             getLocationRoot(size_t loc_index) const;
+        std::string             getLocationIndex(size_t loc_index) const;
+        bool                    getAutoIndex(size_t loc_index) const;
+        size_t                  getRedirectCode(size_t loc_index) const;
+        std::string             getMethods(size_t loc_index, size_t method_index) const;
+        std::string             getRedirect(size_t loc_index) const;
+        std::string             getCgiExtensions(size_t loc_index, size_t cgi_extension_index) const;
+        size_t                  getCgiExtensionCount(size_t loc_index) const;
+        std::string             getUploadStore(size_t loc_index) const;      
 
 };
 

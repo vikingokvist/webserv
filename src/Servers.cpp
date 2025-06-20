@@ -14,7 +14,7 @@ Servers::Servers(const std::string& filename) : parser(filename) {
 
 Servers::Servers(const Servers& src) {*this = src;}
 
-Servers& Servers::operator=(const Servers& src) {return (*this);};
+Servers& Servers::operator=(const Servers& src) {(void)src; return (*this);};
 
 Servers::~Servers() {}
 
