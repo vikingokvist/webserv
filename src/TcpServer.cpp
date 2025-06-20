@@ -1,4 +1,5 @@
 #include "../includes/webserv.hpp"
+#include "../includes/TcpServer.hpp"
 
 
 TcpServer::TcpServer(std::string& ip_address, int port_address) 

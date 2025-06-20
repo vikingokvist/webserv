@@ -1,17 +1,7 @@
 #ifndef CONFIG_PARSER_HPP
 # define CONFIG_PARSER_HPP
 
-#include <iostream>
-#include <exception>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <vector>
-#include <stack>
-#include <map>
-#include <set>
-#include <cstdlib>
-
+#include "./webserv.hpp"
 
 struct LocationConfig
 {

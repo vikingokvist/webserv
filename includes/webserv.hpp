@@ -20,33 +20,13 @@
 # include <dirent.h> 
 # include <vector>  
 # include <map>
+# include <fstream>
+# include <sstream>
+# include <stack>
+# include <set>
+# include <cstdlib>
 
 # define MAX_CLIENTS 100
 # define BUFFER_SIZE 1024
-      
-class TcpServer
-{
-    private:
-        int                         server_fd;
-        int                         port;
-        std::string                 ip;
-        struct sockaddr_in          server_addr;
-        socklen_t                   addr_len;
-        std::vector<struct pollfd>  poll_fds;
-        std::map<int, std::string>  client_buffers;
-
-        bool                        setupServerSocket();
-        void                        acceptNewClient();
-        void                        handleClientData(int client_fd);
-        void                        removeClient(int index);
-
-    public:
-
-        TcpServer(std::string& ip_address, int port_address);
-        ~TcpServer();
-
-        void run();
-};
-
 
 #endif
