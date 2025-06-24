@@ -8,7 +8,7 @@ Servers::Servers(const std::string& filename) : parser(filename) {
     
     for (size_t i = 0; i < configs.size(); ++i) {
 
-        servers.push_back(ServerWrapper(&configs[i]));
+        servers.push_back(ServerWrapper(configs[i]));
     }
 }
 

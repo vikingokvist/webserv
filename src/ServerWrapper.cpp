@@ -3,11 +3,19 @@
 ServerWrapper::ServerWrapper() {}
 
 
-ServerWrapper::ServerWrapper(const ServerConfig* cfg) : config(cfg) {}
+ServerWrapper::ServerWrapper(const ServerConfig& cfg) : config(&cfg) {}
 
 ServerWrapper::ServerWrapper(const ServerWrapper& src) {*this = src;}
 
-ServerWrapper& ServerWrapper::operator=(const ServerWrapper& src) {(void)src; return (*this);};
+ServerWrapper& ServerWrapper::operator=(const ServerWrapper& src) {
+    
+    if (this != &src) {
+
+        this->config = src.config;
+        return (*this);
+    }
+    return (*this);
+};
 
 ServerWrapper::~ServerWrapper() {}
 
@@ -49,6 +57,14 @@ size_t                  ServerWrapper::getServerNameCount() const {
 
     if (!config) return (0);
     return (config->server_names.size());
+}
+
+
+
+std::map<int, std::string> ServerWrapper::getAllErrorPages() const {
+    if (!config)
+        return std::map<int, std::string>();
+    return (config->error_pages);
 }
 
 

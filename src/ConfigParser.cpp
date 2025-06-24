@@ -9,7 +9,7 @@ ConfigParser::ConfigParser(const std::string& filename) {
     parseFile(filename, vars);
     parseConfigFile(vars);
 
-    printParsedConfig(this->getServers());
+    // printParsedConfig(this->getServers());
 }
 
 ConfigParser::ConfigParser(const ConfigParser& src) {*this = src;}
