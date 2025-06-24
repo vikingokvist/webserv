@@ -26,12 +26,8 @@ int main(void)
             }
 
             // Error Pages
-            std::map<int, std::string> errors = server.getAllErrorPages();
-            for (std::map<int, std::string>::const_iterator it = errors.begin(); it != errors.end(); ++it)
-            {
-                std::cout << "  ErrorPage[" << it->first << "]: " << it->second << "\n";
-            }
-
+            std::cout << "  ErrorPage[" << 0 << "]: " << server.getErrorPages(404) << "\n";
+            std::cout << "  ErrorPage[" << 1 << "]: " << server.getErrorPages(500) << "\n";
 
             // Client Max Body Size
             std::cout << "  Client Max Body Size: " << server.getClientMaxBodySize() << "\n";

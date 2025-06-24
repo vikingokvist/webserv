@@ -60,14 +60,6 @@ size_t                  ServerWrapper::getServerNameCount() const {
 }
 
 
-
-std::map<int, std::string> ServerWrapper::getAllErrorPages() const {
-    if (!config)
-        return std::map<int, std::string>();
-    return (config->error_pages);
-}
-
-
 std::string             ServerWrapper::getErrorPages(int error_page_index) const {
 
     if (!config) return ("");

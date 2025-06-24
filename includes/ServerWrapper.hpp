@@ -25,7 +25,6 @@ class ServerWrapper
         size_t                  getPortCount() const;
         std::string             getServerNames(size_t server_name_index) const;
         size_t                  getServerNameCount() const;
-        std::map<int, std::string> getAllErrorPages() const;
         std::string             getErrorPages(int error_page_index) const;
         size_t                  getErrorPageCount() const;
         size_t                  getClientMaxBodySize() const;
