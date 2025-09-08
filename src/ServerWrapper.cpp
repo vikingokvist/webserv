@@ -114,11 +114,25 @@ std::string             ServerWrapper::getLocationRoot(size_t loc_index) const {
     return (config->locations[loc_index].root);
 }
 
+size_t ServerWrapper::getLocationIndexCount(size_t loc_index) const {
 
-std::string             ServerWrapper::getLocationIndex(size_t loc_index) const {
+    if (!config || loc_index >= config->locations.size()) 
+        return (0);
 
-    if (!config || loc_index >= config->locations.size()) return ("");
-    return (config->locations[loc_index].index);
+    return (config->locations[loc_index].indices.size());
+}
+
+std::string ServerWrapper::getLocationIndex(size_t loc_index, size_t index_file) const {
+
+    if (!config || loc_index >= config->locations.size()) 
+        return ("");
+
+    const std::vector<std::string>& indices = config->locations[loc_index].indices;
+
+    if (index_file >= indices.size()) 
+        return ("");
+
+    return (indices[index_file]);
 }
 
 

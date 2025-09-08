@@ -32,7 +32,8 @@ class ServerWrapper
         size_t                  getLocationCount() const;
         std::string             getLocationPath(size_t loc_index) const;
         std::string             getLocationRoot(size_t loc_index) const;
-        std::string             getLocationIndex(size_t loc_index) const;
+        std::string             getLocationIndex(size_t loc_index, size_t index_file) const;
+        size_t                  getLocationIndexCount(size_t loc_index) const;
         bool                    getAutoIndex(size_t loc_index) const;
         size_t                  getRedirectCode(size_t loc_index) const;
         std::string             getMethods(size_t loc_index, size_t method_index) const;

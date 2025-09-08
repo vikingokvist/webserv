@@ -30,18 +30,24 @@ int main(void)
             std::cout << "  ErrorPage[" << 1 << "]: " << server.getErrorPages(500) << "\n";
 
             // Client Max Body Size
-            std::cout << "  Client Max Body Size: " << server.getClientMaxBodySize() << "\n";
+            std::cout << "  Client Max Body Size: " << server.getClientMaxBodySize() << "\n\n";
 
             // Locations
             for (size_t j = 0; j < server.getLocationCount(); ++j)
             {
                 std::cout << "  --- Location [" << j << "] ---\n";
-                std::cout << "    Path: " << server.getLocationPath(j) << "\n";
-                std::cout << "    Root: " << server.getLocationRoot(j) << "\n";
-                std::cout << "    Index: " << server.getLocationIndex(j) << "\n";
+                if (server.getLocationPath(j) != "")
+                    std::cout << "    Path: " << server.getLocationPath(j) << "\n";
+                if (server.getLocationRoot(j) != "")    
+                    std::cout << "    Root: " << server.getLocationRoot(j) << "\n";
+                for (size_t k = 0; k < server.getLocationIndexCount(j); k++) {
+                    std::cout << "    Index[" << k << "]: " << server.getLocationIndex(j, k) << "\n";
+                }
                 std::cout << "    AutoIndex: " << (server.getAutoIndex(j) ? "on" : "off") << "\n";
-                std::cout << "    Redirect: " << server.getRedirect(j) << "\n";
-                std::cout << "    Redirect Code: " << server.getRedirectCode(j) << "\n";
+                if (server.getRedirect(j) != "") 
+                    std::cout << "    Redirect: " << server.getRedirect(j) << "\n";
+                if (server.getRedirectCode(j) != 0) 
+                    std::cout << "    Redirect Code: " << server.getRedirectCode(j) << "\n";
 
                 // Allowed Methods
                 size_t k = 0;
@@ -57,14 +63,18 @@ int main(void)
 
                 // CGI Extensions
                 std::cout << "    CGI Extensions:";
-                for (size_t k = 0; k < server.getCgiExtensionCount(j); ++k)
-                {
-                    std::cout << " " << server.getCgiExtensions(j, k);
+                if (server.getCgiExtensionCount(j) != 0) {
+                    
+                    for (size_t k = 0; k < server.getCgiExtensionCount(j); ++k)
+                    {
+                        std::cout << " " << server.getCgiExtensions(j, k);
+                    }
                 }
-                std::cout << "\n";
+                std::cout << "\n\n";
 
                 // Upload Store
-                std::cout << "    Upload Store: " << server.getUploadStore(j) << "\n";
+                if (server.getUploadStore(j) != "")
+                    std::cout << "    Upload Store: " << server.getUploadStore(j) << "\n";
             }
 
             std::cout << "\n";

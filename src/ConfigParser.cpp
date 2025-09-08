@@ -154,12 +154,18 @@ void    ConfigParser::rootToken(ParserVariables& vars) {
 void    ConfigParser::indexToken(ParserVariables& vars) {
 
     vars.it++;
-    if (vars.it != vars.config_array.end()) {
+    for (; vars.it != vars.config_array.end(); ) {
         vars.token = *vars.it;
+        if (!vars.token.empty() && vars.token.find('}') != std::string::npos)
+            break ;
         if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
 
             vars.token.erase(vars.token.size() - 1);
-            vars.cur_loc.index = vars.token;
+            vars.cur_loc.indices.push_back(vars.token);
+            vars.token = *(++vars.it);
+        }
+        else if (!vars.token.empty() && vars.token[vars.token.size() - 1] != ';') {
+            vars.cur_loc.indices.push_back(vars.token);
             vars.token = *(++vars.it);
         }
     }
@@ -440,9 +446,6 @@ void        ConfigParser::printParsedConfig(const std::vector<ServerConfig>& ser
                 std::cout << "      Path: " << loc.path << "\n";
             if (!loc.root.empty())
                 std::cout << "      Root: " << loc.root << "\n";
-            if (!loc.index.empty())
-                std::cout << "      Index: " << loc.index << "\n";
-    
             if (!loc.methods.empty()) {
                 std::cout << "      Methods: ";
                 for (std::set<std::string>::const_iterator it = loc.methods.begin(); it != loc.methods.end(); ++it)

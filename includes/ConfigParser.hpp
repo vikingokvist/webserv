@@ -5,15 +5,15 @@
 
 struct LocationConfig
 {
-    std::string             path;
-    std::string             root;
-    std::string             index;
-    std::set<std::string>   methods;
-    bool                    auto_index;
-    std::string             redirect;
-    size_t                  redirect_code;
-    std::set<std::string>   cgi_extensions;
-    std::string             upload_store;
+    std::string                 path;
+    std::string                 root;
+    std::vector<std::string>    indices;
+    std::set<std::string>       methods;
+    bool                        auto_index;
+    std::string                 redirect;
+    size_t                      redirect_code;
+    std::set<std::string>       cgi_extensions;
+    std::string                 upload_store;
 };
 
 struct ServerConfig
