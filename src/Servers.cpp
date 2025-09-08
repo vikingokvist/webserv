@@ -1,4 +1,6 @@
-#include "../includes/Servers.hpp"
+#include "Servers.hpp"
+#include "ConfigParser.hpp"   // now we have full type
+#include "ServerWrapper.hpp"
 
 Servers::Servers() {}
 
@@ -16,7 +18,9 @@ Servers::Servers(const Servers& src) {*this = src;}
 
 Servers& Servers::operator=(const Servers& src) {(void)src; return (*this);};
 
-Servers::~Servers() {}
+Servers::~Servers() {
+
+}
 
 const ServerWrapper& Servers::operator[](size_t index) const {
 

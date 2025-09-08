@@ -2,7 +2,6 @@
 
 ServerWrapper::ServerWrapper() {}
 
-
 ServerWrapper::ServerWrapper(const ServerConfig& cfg) : config(&cfg) {}
 
 ServerWrapper::ServerWrapper(const ServerWrapper& src) {*this = src;}
@@ -46,12 +45,16 @@ size_t                  ServerWrapper::getPortCount() const {
     return (config->ips_and_ports.size());
 }
 
-std::string             ServerWrapper::getServerNames(size_t server_name_index) const {
+std::string             ServerWrapper::getServerName(size_t server_name_index) const {
 
     if (!config || server_name_index >= config->server_names.size()) return ("");
     return (config->server_names[server_name_index]);
 }
 
+std::vector<std::string> ServerWrapper::getServerNamesList(void) const {
+
+    return (config->server_names);
+}
 
 size_t                  ServerWrapper::getServerNameCount() const {
 
@@ -83,6 +86,12 @@ size_t                  ServerWrapper::getClientMaxBodySize() const {
     return (config->client_max_body_size);
 }
 
+std::vector<LocationConfig>   ServerWrapper::getLocations(void) const {
+
+    if (!config)
+        throw (std::out_of_range("Invalid location index"));
+    return (config->locations);
+}
 
 const LocationConfig&   ServerWrapper::getLocation(size_t loc_index) const {
 
@@ -156,13 +165,13 @@ size_t             ServerWrapper::getRedirectCode(size_t loc_index) const {
 
 std::string ServerWrapper::getMethods(size_t loc_index, size_t method_index) const {
     
-    if (!config || loc_index >= config->locations.size()) return "";
+    if (!config || loc_index >= config->locations.size()) return ("");
     const std::set<std::string>& methods = config->locations[loc_index].methods;
 
-    if (method_index >= methods.size()) return "";
+    if (method_index >= methods.size()) return ("");
     std::set<std::string>::const_iterator it = methods.begin();
     std::advance(it, method_index);
-    return *it;
+    return (*it);
 }
 
 
@@ -189,5 +198,132 @@ std::string             ServerWrapper::getUploadStore(size_t loc_index) const {
 
     if (!config || loc_index >= config->locations.size()) return ("");
     return (config->locations[loc_index].upload_store);
-}   
+}
+
+//JIAMEEEE-------------------------------------------------------------
+
+void                ServerWrapper::setSocket(int _fd) {
+
+	this->_fd = _fd;
+}
+
+void                ServerWrapper::setServerName(const std::vector<std::string>& _server_name) {
+    
+    this->_server_name = _server_name;
+}
+
+void                ServerWrapper::setPort(uint16_t _port) {
+
+	this->_port = _port;
+}
+
+void                ServerWrapper::setHost(in_addr_t _host) {
+
+	this->_host = _host;
+}
+
+void                ServerWrapper::setSinFamily(sa_family_t _sin_family) {
+
+	this->_sin_family = _sin_family;
+}
+
+void                ServerWrapper::setMaxClientSize(unsigned long _client_max_body_size) {
+
+	this->_client_max_body_size = _client_max_body_size;
+}
+
+void                ServerWrapper::setLocations(std::vector<LocationConfig>& _locations) {
+
+	this->_locations = _locations;
+}
+
+
+int                 ServerWrapper::getSocket() const {
+
+    return (this->_fd);
+}
+
+const std::vector<std::string>& ServerWrapper::getServerName() const {
+
+    return (this->_server_name);
+}
+
+uint16_t            ServerWrapper::getPort() const {
+
+    return (this->_port);
+}
+
+in_addr_t           ServerWrapper::getHost() const {
+
+    return (this->_host);
+}
+
+sa_family_t         ServerWrapper::getSinFamily() const {
+
+    return (this->_sin_family);
+}
+
+unsigned long      ServerWrapper::getMaxClientSize() const {
+    
+    return (this->_client_max_body_size);
+}
+
+struct sockaddr_in* ServerWrapper::getSockAddr() {
+    
+    return(&_server_adress);
+}
+
+void                ServerWrapper::setupSocket() {
+
+	_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (_fd == -1) {
+
+		std::cerr << "Failed to create socket. errno: " << errno << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	int opt = 1;
+	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+
+		std::cerr << "setsockopt(SO_REUSEADDR) failed. errno: " << errno << std::endl;
+		close(_fd);
+		exit(EXIT_FAILURE);
+	}
+}
+
+void            ServerWrapper::setupSockAddr() {
+
+	_server_adress.sin_addr.s_addr = getHost();
+	_server_adress.sin_family = getSinFamily();
+	_server_adress.sin_port = getPort();
+}
+
+void ServerWrapper::bindAndListen() {
+
+	if (bind(this->_fd, (struct sockaddr*)&_server_adress, sizeof(struct sockaddr_in)) < 0) {
+
+		std::cerr << "Failed to bind to port " << ntohs(_server_adress.sin_port)
+		          << ". errno: " << errno << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	if (listen(this->_fd, this->_client_max_body_size) < 0) {
+
+		std::cerr << "Failed to listen on socket. errno: " << errno << std::endl;
+		exit(EXIT_FAILURE);
+	}
+    else {
+
+		std::cout << "Waiting for connection..." << std::endl;
+	}
+}
+
+void            ServerWrapper::setupServerConfig(const std::vector<std::string>& _server_name, uint16_t _port, in_addr_t _host,
+	sa_family_t _sin_family, unsigned long _client_max_body_size) {
+
+	setServerName(_server_name);
+	setPort(_port);
+	setHost(_host);
+	setSinFamily(_sin_family);
+	setMaxClientSize(_client_max_body_size);
+	setupSockAddr();
+}
 

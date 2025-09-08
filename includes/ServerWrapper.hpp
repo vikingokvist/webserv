@@ -3,13 +3,24 @@
 
 # include "./ConfigParser.hpp"
 # include "./webserv.hpp"
+# include <vector>
 
+struct ServerConfig;
+struct LocationConfig;
 
 class ServerWrapper
 {
     private:
 
-        const ServerConfig* config;
+        const ServerConfig*                 config;
+        int	                                _fd;                        // Descriptor de socket, se inicializa internamente
+		std::vector<std::string>            _server_name;              // server_name localhost;
+		uint16_t                            _port;                     // listen 9999;
+		in_addr_t                           _host;                     // host 127.0.0.1;
+		sa_family_t                         _sin_family;               // Tipo de socket, normalmente AF_INET
+		unsigned long		                _client_max_body_size;     // client_max_body_size 5;
+		struct sockaddr_in	                _server_adress;            // Se construye con host, puerto y familia
+		std::vector<LocationConfig>         _locations;
 
     public:
 
@@ -19,28 +30,57 @@ class ServerWrapper
         ServerWrapper& operator=(const ServerWrapper& src);
         ~ServerWrapper();
 
-        std::string             getIps(size_t ip_index) const;
-        size_t                  getIpCount() const;
-        int                     getPorts(size_t port_index) const;
-        size_t                  getPortCount() const;
-        std::string             getServerNames(size_t server_name_index) const;
-        size_t                  getServerNameCount() const;
-        std::string             getErrorPages(int error_page_index) const;
-        size_t                  getErrorPageCount() const;
-        size_t                  getClientMaxBodySize() const;
-        const LocationConfig&   getLocation(size_t loc_index) const;
-        size_t                  getLocationCount() const;
-        std::string             getLocationPath(size_t loc_index) const;
-        std::string             getLocationRoot(size_t loc_index) const;
-        std::string             getLocationIndex(size_t loc_index, size_t index_file) const;
-        size_t                  getLocationIndexCount(size_t loc_index) const;
-        bool                    getAutoIndex(size_t loc_index) const;
-        size_t                  getRedirectCode(size_t loc_index) const;
-        std::string             getMethods(size_t loc_index, size_t method_index) const;
-        std::string             getRedirect(size_t loc_index) const;
-        std::string             getCgiExtensions(size_t loc_index, size_t cgi_extension_index) const;
-        size_t                  getCgiExtensionCount(size_t loc_index) const;
-        std::string             getUploadStore(size_t loc_index) const;      
+
+        std::string                         getIps(size_t ip_index) const;
+        size_t                              getIpCount() const;
+        int                                 getPorts(size_t port_index) const;
+        size_t                              getPortCount() const;
+        std::string                         getServerName(size_t server_name_index) const;
+        std::vector<std::string>            getServerNamesList(void) const;
+        size_t                              getServerNameCount() const;
+        std::string                         getErrorPages(int error_page_index) const;
+        size_t                              getErrorPageCount() const;
+        size_t                              getClientMaxBodySize() const;
+        std::vector<LocationConfig>         getLocations(void) const;
+        const LocationConfig&               getLocation(size_t loc_index) const;
+        size_t                              getLocationCount() const;
+        std::string                         getLocationPath(size_t loc_index) const;
+        std::string                         getLocationRoot(size_t loc_index) const;
+        std::string                         getLocationIndex(size_t loc_index, size_t index_file) const;
+        size_t                              getLocationIndexCount(size_t loc_index) const;
+        bool                                getAutoIndex(size_t loc_index) const;
+        size_t                              getRedirectCode(size_t loc_index) const;
+        std::string                         getMethods(size_t loc_index, size_t method_index) const;
+        std::string                         getRedirect(size_t loc_index) const;
+        std::string                         getCgiExtensions(size_t loc_index, size_t cgi_extension_index) const;
+        size_t                              getCgiExtensionCount(size_t loc_index) const;
+        std::string                         getUploadStore(size_t loc_index) const;    
+        
+
+        void                                setSocket(int _fd);
+		void                                setServerName(const std::vector<std::string>& _server_name);
+		void                                setPort(uint16_t _port);
+		void                                setHost(in_addr_t _host);
+		void                                setSinFamily(sa_family_t  _sin_family);
+		void                                setMaxClientSize(unsigned long _client_max_body_size);
+		void                                setLocations(std::vector<LocationConfig>& _locations);
+
+
+		int                                 getSocket() const;
+		const std::vector<std::string>&     getServerName() const;
+		uint16_t			                getPort() const;
+		in_addr_t			                getHost() const;
+		sa_family_t			                getSinFamily() const;
+		unsigned long		                getMaxClientSize() const;
+		struct sockaddr_in*	                getSockAddr();
+
+
+        void	                            setupSockAddr();
+		void	                            bindAndListen();
+		void	                            setupSocket();
+		void	                            setupServerConfig(const std::vector<std::string>& _server_name, uint16_t _port, in_addr_t _host,
+				sa_family_t _sin_family, unsigned long _client_max_body_size);
+
 
 };
 

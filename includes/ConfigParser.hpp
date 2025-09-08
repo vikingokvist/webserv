@@ -2,6 +2,8 @@
 # define CONFIG_PARSER_HPP
 
 #include "./webserv.hpp"
+# include <vector>
+# include <set>
 
 struct LocationConfig
 {

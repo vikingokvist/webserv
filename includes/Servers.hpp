@@ -1,10 +1,10 @@
 #ifndef SERVERS_HPP
 # define SERVERS_HPP
 
-# include "./ConfigParser.hpp"
-# include "./webserv.hpp"
-# include "./ServerWrapper.hpp"
+#include <vector>
 
+class ConfigParser;
+class ServerWrapper;
 
 class Servers
 {
@@ -22,6 +22,7 @@ class Servers
 
         const ServerWrapper&   operator[](size_t index) const;
         size_t size() const;
+
 };
 
 #endif
