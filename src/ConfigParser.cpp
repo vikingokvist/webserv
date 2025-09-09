@@ -8,8 +8,8 @@ ConfigParser::ConfigParser(const std::string& filename) {
 
     parseFile(filename, vars);
     parseConfigFile(vars);
-
-    // printParsedConfig(this->getServers());
+    
+    printParsedConfig(_servers);
 }
 
 ConfigParser::ConfigParser(const ConfigParser& src) {*this = src;}
@@ -78,7 +78,7 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
                 cgiExtensionToken(vars);
             else if (vars.token == "upload_store")
                 uploadStoreToken(vars);
-            else if (isMisconfiguredLocation(vars.token) == false) {
+            else if (isMisconfiguredLocation(vars.token) == true) {
                 std::cout << "\"" << vars.token << "\"" << " <= ";
                 throw (MisconfigurationException());
             }
@@ -96,7 +96,6 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
         }
     }
     if (vars.in_server == true || vars.in_location == true) {
-
         std::cout << "} <= Missing closing bracket " << std::endl;
         throw (MisconfigurationException());
     }
@@ -107,7 +106,6 @@ void ConfigParser::handleBracketStack(ParserVariables& vars) {
     if (vars.token.find("server") != std::string::npos && vars.token.find("server_name") == std::string::npos) {
 
         if (vars.in_server == true) {
-
             throw (MisconfigurationException());
         }
         vars.token = *(++vars.it);
@@ -154,19 +152,23 @@ void    ConfigParser::rootToken(ParserVariables& vars) {
 void    ConfigParser::indexToken(ParserVariables& vars) {
 
     vars.it++;
-    for (; vars.it != vars.config_array.end(); ) {
-        vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token.find('}') != std::string::npos)
-            break ;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
+    for (; vars.it != vars.config_array.end(); ++vars.it) {
 
-            vars.token.erase(vars.token.size() - 1);
-            vars.cur_loc.indices.push_back(vars.token);
-            vars.token = *(++vars.it);
+        vars.token = *vars.it;
+        size_t found_semicolon = vars.token.find(';');
+        size_t found_bracket = vars.token.find('}');
+
+        if (!vars.token.empty() && found_bracket != std::string::npos)
+            break ;
+        if (!vars.token.empty() && found_semicolon != std::string::npos) {
+
+            std::string temp = vars.token.substr(0, found_semicolon);
+            vars.cur_loc.indices.push_back(temp);
+            break ;
         }
-        else if (!vars.token.empty() && vars.token[vars.token.size() - 1] != ';') {
+        else if (!vars.token.empty() && found_semicolon == std::string::npos) {
+            
             vars.cur_loc.indices.push_back(vars.token);
-            vars.token = *(++vars.it);
         }
     }
 }
@@ -441,11 +443,16 @@ void        ConfigParser::printParsedConfig(const std::vector<ServerConfig>& ser
         std::cout << "  Locations:\n";
         for (size_t k = 0; k < server.locations.size(); ++k) {
             const LocationConfig& loc = server.locations[k];
-            std::cout << "    Location #" << k + 1 << ":\n";
+            std::cout << "-----------------------Location #" << k + 1 << ":\n";
             if (!loc.path.empty())
                 std::cout << "      Path: " << loc.path << "\n";
             if (!loc.root.empty())
                 std::cout << "      Root: " << loc.root << "\n";
+            if (!loc.indices.empty()) {
+                for (size_t l = 0; l < loc.indices.size(); l++) {
+                    std::cout << "      Index[" << l << "]: " << loc.indices[l] << std::endl;
+                }
+            }
             if (!loc.methods.empty()) {
                 std::cout << "      Methods: ";
                 for (std::set<std::string>::const_iterator it = loc.methods.begin(); it != loc.methods.end(); ++it)
@@ -469,6 +476,7 @@ void        ConfigParser::printParsedConfig(const std::vector<ServerConfig>& ser
             }   
             if (!loc.upload_store.empty())
                 std::cout << "      Upload Store: " << loc.upload_store << "\n";
+            std::cout << std::endl;
         }
     
         std::cout << "----------------------\n";

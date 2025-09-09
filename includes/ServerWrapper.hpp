@@ -1,12 +1,8 @@
 #ifndef SERVER_WRAPPER_HPP
 # define SERVER_WRAPPER_HPP
 
-# include "./ConfigParser.hpp"
-# include "./webserv.hpp"
-# include <vector>
 
-struct ServerConfig;
-struct LocationConfig;
+#include "./webserv.hpp"
 
 class ServerWrapper
 {
@@ -41,7 +37,7 @@ class ServerWrapper
         std::string                         getErrorPages(int error_page_index) const;
         size_t                              getErrorPageCount() const;
         size_t                              getClientMaxBodySize() const;
-        std::vector<LocationConfig>         getLocations(void) const;
+        const std::vector<LocationConfig>&  getLocations() const;
         const LocationConfig&               getLocation(size_t loc_index) const;
         size_t                              getLocationCount() const;
         std::string                         getLocationPath(size_t loc_index) const;
@@ -63,7 +59,7 @@ class ServerWrapper
 		void                                setHost(in_addr_t _host);
 		void                                setSinFamily(sa_family_t  _sin_family);
 		void                                setMaxClientSize(unsigned long _client_max_body_size);
-		void                                setLocations(std::vector<LocationConfig>& _locations);
+		void                                setLocations(const std::vector<LocationConfig>& _locations);
 
 
 		int                                 getSocket() const;

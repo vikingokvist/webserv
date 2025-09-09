@@ -1,6 +1,4 @@
-#include "Servers.hpp"
-#include "ConfigParser.hpp"   // now we have full type
-#include "ServerWrapper.hpp"
+#include "../includes/Servers.hpp"
 
 Servers::Servers() {}
 
@@ -22,14 +20,24 @@ Servers::~Servers() {
 
 }
 
+
+ServerWrapper& Servers::operator[](size_t index) {
+    
+    if (index >= servers.size()) {
+        throw std::out_of_range("Invalid server index");
+    }
+    return servers[index];
+}
+
+
 const ServerWrapper& Servers::operator[](size_t index) const {
 
     if (index >= servers.size()) {
-        
-        throw (std::out_of_range("Invalid server index"));
+        throw std::out_of_range("Invalid server index");
     }
-    return (servers[index]);
+    return servers[index];
 }
+
 
 size_t  Servers::size() const {
 

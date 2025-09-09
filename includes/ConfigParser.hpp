@@ -2,30 +2,7 @@
 # define CONFIG_PARSER_HPP
 
 #include "./webserv.hpp"
-# include <vector>
-# include <set>
 
-struct LocationConfig
-{
-    std::string                 path;
-    std::string                 root;
-    std::vector<std::string>    indices;
-    std::set<std::string>       methods;
-    bool                        auto_index;
-    std::string                 redirect;
-    size_t                      redirect_code;
-    std::set<std::string>       cgi_extensions;
-    std::string                 upload_store;
-};
-
-struct ServerConfig
-{
-    std::vector<std::pair<std::string, int> >   ips_and_ports;
-    std::vector<std::string>                    server_names;
-    std::map<int, std::string>                  error_pages;
-    size_t                                      client_max_body_size;
-    std::vector<LocationConfig>                 locations;
-};
 
 struct ParserVariables
 {

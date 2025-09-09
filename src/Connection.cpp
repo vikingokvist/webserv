@@ -6,12 +6,11 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/08 16:33:00 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/09 12:25:46 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "Connection.hpp"
-#include "ServerWrapper.hpp"  // full definition needed
+#include "../includes/Connection.hpp"
 #include "../includes/ErrorResponse.hpp"
 
 

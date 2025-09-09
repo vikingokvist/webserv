@@ -2,9 +2,10 @@
 # define SERVERS_HPP
 
 #include <vector>
+#include <string>
+#include "ConfigParser.hpp"
+#include "ServerWrapper.hpp"
 
-class ConfigParser;
-class ServerWrapper;
 
 class Servers
 {
@@ -20,7 +21,8 @@ class Servers
         Servers& operator=(const Servers& src);
         ~Servers();
 
-        const ServerWrapper&   operator[](size_t index) const;
+        ServerWrapper& operator[](size_t index);
+        const ServerWrapper& operator[](size_t index) const;
         size_t size() const;
 
 };

@@ -86,12 +86,16 @@ size_t                  ServerWrapper::getClientMaxBodySize() const {
     return (config->client_max_body_size);
 }
 
-std::vector<LocationConfig>   ServerWrapper::getLocations(void) const {
+
+
+
+const std::vector<LocationConfig>& ServerWrapper::getLocations() const {
 
     if (!config)
-        throw (std::out_of_range("Invalid location index"));
+        throw std::out_of_range("Invalid location index");
     return (config->locations);
 }
+
 
 const LocationConfig&   ServerWrapper::getLocation(size_t loc_index) const {
 
@@ -232,7 +236,7 @@ void                ServerWrapper::setMaxClientSize(unsigned long _client_max_bo
 	this->_client_max_body_size = _client_max_body_size;
 }
 
-void                ServerWrapper::setLocations(std::vector<LocationConfig>& _locations) {
+void                ServerWrapper::setLocations(const std::vector<LocationConfig>& _locations) {
 
 	this->_locations = _locations;
 }

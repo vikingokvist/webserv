@@ -6,19 +6,23 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/08 16:32:42 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/09 12:25:34 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef CONNECTION_HPP
 #define CONNECTION_HPP
 
-#include "../includes/webserv.hpp"
-#include "../includes/ConfigParser.hpp"
+
 
 #define BUFFER_SIZE 1024
 
 class ServerWrapper; // forward declaration
+#include "./ServerWrapper.hpp"
+#include <iostream>
+#include <map>
+#include <iosfwd>
+
 
 class Connection {
 	
