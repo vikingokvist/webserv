@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/09 15:11:47 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/10 15:40:11 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,82 +14,13 @@
 #include "../includes/ErrorResponse.hpp"
 
 
-// --------------------- Constructor ---------------------
-
 Connection::Connection(ServerWrapper& _server) : _server(_server) {
 	
-	setFd(this->_server.getFD());
-}
-
-// ----------------------- Getters -----------------------
-
-int Connection::getFd() {
-	
-	return this->_fd;
-}
-
-char* Connection::getRequest() {
-
-	return this->_request;
-}
-
-std::string Connection::getHeader(std::string index) {
-
-	return this->_headers[index];
-}
-
-std::ifstream& Connection::getFile() {
-	
-	return this->_file;
-}
-
-std::string Connection::getFullPath() {
-
-	return this->_full_path;
-}
-
-ServerWrapper&	Connection::getServer() {
-
-	return (this->_server);
-}
-
-// ----------------------- Setters -----------------------
-
-
-void Connection::setFd(int fd) {
-
-	this->_fd = fd;
-}
-
-void Connection::setHeader(std::string index,std::string value) {
-
-	this->_headers[index] = value;
-}
-
-void Connection::setFullPath(const std::string& full_path) {
-	
-	this->_full_path = full_path;
+	this->_fd = this->_server.getFD();
 }
 
 
-// -------------------- Utilidad --------------------
-
-std::string Connection::getContentType(const std::string& path) {
-	
-	if (path.find(".css") != std::string::npos)
-		return "text/css";
-	if (path.find(".html") != std::string::npos)
-		return "text/html";
-	if (path.find(".js") != std::string::npos)
-		return "application/javascript";
-	if (path.find(".png") != std::string::npos)
-		return "image/png";
-	return "text/plain";
-}
-
-// -------------------- Responses HTTP --------------------
-
-void Connection::sendGetResponse() {
+void			Connection::sendGetResponse() {
 	
 	std::ostringstream body_stream;
 	body_stream << getFile().rdbuf();
@@ -107,7 +38,7 @@ void Connection::sendGetResponse() {
 	close(getFd());
 }
 
-void Connection::sendPostResponse() {
+void			Connection::sendPostResponse() {
 	
 	// Procesar datos del formulario si es necesario
 	std::string nombre = getHeader("nombre");
@@ -126,6 +57,84 @@ void Connection::sendPostResponse() {
 	close(getFd());
 }
 
+ssize_t			Connection::getBestMatch(ServerWrapper& server, std::string req_path) {
+	
+	size_t max_match_len = 0;
+	ssize_t best_match = -1;
+	
+	for (size_t j = 0; j < server.getLocations().size(); ++j) {	
+		
+		const std::string& loc_path = server.getLocationPath(j);
+		if (req_path.find(loc_path) == 0) {
+
+			max_match_len = loc_path.size();
+			best_match = j;
+		}
+	}
+	return (best_match);
+}
+
+bool	Connection::isMethodAllowed(Connection& connection, const std::string& method) {
+	
+	const std::vector<LocationConfig>& locations = connection.getServer().getLocations();
+	std::string path = connection.getHeader("Path");
+	
+	for (size_t j = 0; j < locations.size(); ++j) {
+		
+		if (path.find(locations[j].path) == 0) {
+			
+			if (locations[j].methods.empty())
+				return (true);
+			if (locations[j].methods.count(method))
+				return (true);
+			else
+				return (false);
+		}
+	}
+	return (false);
+}
+
+std::string		Connection::getContentType(const std::string& path) {
+	
+	if (path.find(".css") != std::string::npos)
+		return ("text/css");
+	if (path.find(".html") != std::string::npos)
+		return ("text/html");
+	if (path.find(".js") != std::string::npos)
+		return ("application/javascript");
+	if (path.find(".png") != std::string::npos)
+		return ("image/png");
+	return ("text/plain");
+}
+
+int				Connection::getFd() {return (this->_fd);}
+
+char*			Connection::getRequest() {return (this->_request);}
+
+std::string		Connection::getHeader(std::string index) {return (this->_headers[index]);}
+
+std::ifstream&	Connection::getFile() {return (this->_file);}
+
+std::string		Connection::getFullPath() {return (this->_full_path);}
+
+ServerWrapper&	Connection::getServer() {return (this->_server);}
+
+void			Connection::setFd(int fd) {this->_fd = fd;}
+
+void			Connection::setHeader(std::string index,std::string value) {this->_headers[index] = value;}
+
+void			Connection::setFullPath(const std::string& full_path) {this->_full_path = full_path;}
+
+void			Connection::send400Response() {ErrorResponse::send400(getFd());}
+
+void			Connection::send403Response() {ErrorResponse::send403(getFd());}
+
+void			Connection::send404Response() {ErrorResponse::send404(getFd());}
+
+void			Connection::send405Response() {ErrorResponse::send405(getFd());}
+
+void			Connection::send505Response() {ErrorResponse::send505(getFd());}
+
 /* void Connection::sendDeleteResponse() {
 	std::ostringstream body_stream;
 	body_stream << getFile().rdbuf();
@@ -142,25 +151,3 @@ void Connection::sendPostResponse() {
 	send(getFd(), response.c_str(), response.size(), 0);
 	close(getFd());
 } */
-
-// Función para enviar respuestas con error estándar
-
-void Connection::send400Response() {
-
-	ErrorResponse::send400(getFd());
-}
-
-void Connection::send404Response() {
-	
-	ErrorResponse::send404(getFd());
-}
-
-void Connection::send405Response() {
-
-	ErrorResponse::send405(getFd());
-}
-
-void Connection::send505Response() {
-	
-	ErrorResponse::send505(getFd());
-}

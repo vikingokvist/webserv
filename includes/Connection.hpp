@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/09 15:10:27 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/10 15:45:12 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,6 +21,8 @@ class ServerWrapper;
 #include <iostream>
 #include <map>
 #include <iosfwd>
+#include <dirent.h>
+
 
 class Connection {
 	
@@ -51,14 +53,22 @@ class Connection {
 		
 		bool								checkRequest();
 		bool								saveRequest(char *str);
-		bool								receiveRequest(LocationConfig _location);
+		bool								receiveRequest(ssize_t location_index);
 		void								sendGetResponse();
 		void								sendPostResponse();
-		// void								sendDeleteResponse();			
+		// void								sendDeleteResponse();	
+		void								SendAutoResponse(const std::string &direction_path);
 		void								send400Response(); // Línea de request mal formada
+		void								send403Response(); //Acceso Denegado
 		void								send404Response(); //  Ruta inválida o no existente
 		void								send405Response(); // Método HTTP no soportado
 		void								send505Response(); // Versión HTTP incorrecta
+		
+		bool								isMethodAllowed(Connection& connection, const std::string& method);
+		ssize_t								getBestMatch(ServerWrapper& server, std::string req_path);
+		bool								fileExistsAndReadable(const char* path);
+		bool								isValidHttpVersion(const std::string& version);
+		bool								isDirectory(const char* path);
 		
 };
 

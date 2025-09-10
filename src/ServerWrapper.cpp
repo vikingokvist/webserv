@@ -135,7 +135,7 @@ size_t ServerWrapper::getLocationIndexCount(size_t loc_index) const {
     return (config->locations[loc_index].indices.size());
 }
 
-std::string ServerWrapper::getLocationIndex(size_t loc_index, size_t index_file) const {
+std::string ServerWrapper::getLocationIndexFile(size_t loc_index, size_t index_file) const {
 
     if (!config || loc_index >= config->locations.size()) 
         return ("");
@@ -148,6 +148,10 @@ std::string ServerWrapper::getLocationIndex(size_t loc_index, size_t index_file)
     return (indices[index_file]);
 }
 
+const std::vector<std::string>&     ServerWrapper::getLocationIndices(size_t loc_index) const {
+
+    return (config->locations[loc_index].indices);
+}
 
 bool                    ServerWrapper::getAutoIndex(size_t loc_index) const {
 

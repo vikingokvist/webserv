@@ -38,10 +38,11 @@ class ServerWrapper
         unsigned long                       getClientMaxBodySize() const;
         const std::vector<LocationConfig>&  getLocations() const;
         const LocationConfig&               getLocation(size_t loc_index) const;
+        const std::vector<std::string>&     getLocationIndices(size_t loc_index) const;
         size_t                              getLocationCount() const;
         std::string                         getLocationPath(size_t loc_index) const;
         std::string                         getLocationRoot(size_t loc_index) const;
-        std::string                         getLocationIndex(size_t loc_index, size_t index_file) const;
+        std::string                         getLocationIndexFile(size_t loc_index, size_t index_file) const;
         size_t                              getLocationIndexCount(size_t loc_index) const;
         bool                                getAutoIndex(size_t loc_index) const;
         size_t                              getRedirectCode(size_t loc_index) const;
@@ -81,3 +82,4 @@ class ServerWrapper
 };
 
 #endif
+
