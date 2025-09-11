@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/18 14:19:05 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/10 16:47:26 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/11 11:59:38 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,13 +41,13 @@ bool			Connection::setRequest() {
 
 bool			Connection::saveRequest(char *request) {
 	
-	std::cout << "REQUEST\n" << std::endl;
+	
+	std::cout << "REQUEST" << std::endl;
 	std::cout << "\033[32m" << request << "\033[0m" << std::endl;
 
 	std::string full_request(request);
 	std::size_t header_end = full_request.find("\r\n\r\n");
 	if (header_end == std::string::npos) {
-		
 		send400Response();
 		return (false);
 	}
@@ -61,45 +61,65 @@ bool			Connection::saveRequest(char *request) {
 	std::string method, path, version;
 	
 	if (!(request_line >> method >> path >> version)) {
-		
 		send400Response();
 		return (false);
 	}
-	_headers["Method"] = method;
-	_headers["Path"] = path;
-	_headers["Version"] = version;
-	
-	while (std::getline(iss, line) && !line.empty()) {
-		
-		if (!line.empty() && line[line.length() - 1] == '\r') {
-			line.erase(line.length() - 1);
-		}
-		size_t colon = line.find(":");
-		
-		if (colon != std::string::npos) {
-			
-			std::string key = line.substr(0, colon);
-			std::string value = line.substr(colon + 1);
-			value.erase(0, value.find_first_not_of(" \t"));
-			_headers[key] = value;
-		}
-	}
-	// Parse body if POST
+
 	if (method == "POST") {
-		
-		std::istringstream body_iss(body_part);
-		std::string pair;
-		
-		while (std::getline(body_iss, pair, '&')) {
-			
-			size_t pos = pair.find('=');
-			if (pos != std::string::npos) {
-				
-				std::string key = pair.substr(0, pos);
-				std::string value = pair.substr(pos + 1);
-				_headers[key] = value;
+		std::string body_part = full_request.substr(header_end + 4);
+		std::string boundary = "------geckoformboundaryc324ad9b46a325a07382e0f763b09062";
+
+		// 1. Buscar inicio del filename
+		size_t start_filename = body_part.find("filename=\"");
+		start_filename += 10; // saltar 'filename="'
+
+		// 2. Extraer nombre del archivo
+		size_t end_filename = body_part.find("\"", start_filename);
+		std::string filename = body_part.substr(start_filename, end_filename - start_filename);
+
+		// 3. Buscar inicio del contenido
+		size_t content_start = body_part.find("\r\n\r\n", end_filename);
+		content_start += 4; // saltar los \r\n\r\n
+
+		size_t content_end = body_part.find(boundary, content_start); // buscar boundary final
+		if (content_end != std::string::npos) {
+			// Quitar los \r\n justo antes del boundary
+			while (content_end > content_start && 
+				(body_part[content_end - 1] == '\n' || body_part[content_end - 1] == '\r')) {
+				--content_end;
 			}
 		}
+
+		std::string file_content = body_part.substr(content_start, content_end - content_start);
+		
+		// 6. Guardar archivo en uploads/
+		std::string filepath = "uploads/" + filename;
+		
+		std::ofstream ofs(filepath.c_str(), std::ios::out | std::ios::binary);
+		if (ofs.is_open()) {
+			ofs << file_content;
+			ofs.close(); // se crea y cierra inmediatamente
+			std::cout << "Archivo creado: " << filepath << std::endl;
+		} else {
+			std::cerr << "Error al crear archivo: " << filepath << std::endl;
+		}
+	}
+	else {
+		_headers["Method"] = method;
+		_headers["Path"] = path;
+		_headers["Version"] = version;
+		while (std::getline(iss, line) && !line.empty()) {
+			if (!line.empty() && line[line.length() - 1] == '\r') {
+				line.erase(line.length() - 1);
+			}
+			size_t colon = line.find(":");
+			if (colon != std::string::npos) {
+				std::string key = line.substr(0, colon);
+				std::string value = line.substr(colon + 1);
+				value.erase(0, value.find_first_not_of(" \t"));
+				_headers[key] = value;
+			}
+		}	
 	}
 	return (true);
 }

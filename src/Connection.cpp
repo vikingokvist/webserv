@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/10 15:40:11 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/11 11:45:29 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -65,7 +65,7 @@ ssize_t			Connection::getBestMatch(ServerWrapper& server, std::string req_path) 
 	for (size_t j = 0; j < server.getLocations().size(); ++j) {	
 		
 		const std::string& loc_path = server.getLocationPath(j);
-		if (req_path.find(loc_path) == 0) {
+		if (req_path.rfind(loc_path, 0) == 0 && loc_path.size() > max_match_len) {
 
 			max_match_len = loc_path.size();
 			best_match = j;

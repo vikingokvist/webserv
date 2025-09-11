@@ -10,54 +10,74 @@ int main(int argc, char **argv)
 		std::cout << "Error: Configuration file Missing" << std::endl;
 		return (1);
 	}
-	Servers servers(argv[1]);
-	ServerWrapper& server = servers[0];
+   	Servers servers(argv[1]);
 
-	// BUcle
-	server.setServerName(server.getServerNamesList());
-	server.setPort(server.getPorts(0));
-	server.setHost(inet_addr(server.getIps(0).c_str()));
-	server.setMaxClientSize(server.getClientMaxBodySize());
-	server.setLocations(server.getLocations());
+    // Setup all servers
+    for (size_t i = 0; i < servers.size(); i++) {
 
-	server.setupSocket();
-	server.setupServerConfig(server.getServerName(), htons(server.getPort())
-							,server.getHost(), AF_INET, server.getMaxClientSize());
-	server.bindAndListen();
+        servers[i].setPort(servers[i].getPorts(0));
+        servers[i].setHost(inet_addr(servers[i].getIps(0).c_str()));
+        servers[i].setMaxClientSize(servers[i].getClientMaxBodySize());
+        servers[i].setLocations(servers[i].getLocations());
+        servers[i].setupSocket();
+        servers[i].setServerName(servers[i].getServerNamesList());
+        servers[i].setupServerConfig(servers[i].getServerName(), htons(servers[i].getPort()),
+                      servers[i].getHost(), AF_INET, servers[i].getMaxClientSize());
+        servers[i].bindAndListen();
+    }
 
+	std::vector<pollfd> pollfds;
+    for (size_t i = 0; i < servers.size(); i++) {
+        pollfd pfd;
+        pfd.fd = servers[i].getSocket();
+        pfd.events = POLLIN;
+        pfd.revents = 0;
+        pollfds.push_back(pfd);
+    }
 
 	while (true) 
 	{
-		Connection _connection(server);
+		// Wait for events on all server sockets
+        int ret = poll(pollfds.data(), pollfds.size(), -1);
+        if (ret == -1) {
+            std::cerr << "poll() failed: " << strerror(errno) << std::endl;
+            continue;
+        }
+		for (size_t i = 0; i < pollfds.size(); i++) {
 
-		if (!_connection.setConnection(server))
-			continue ;
+			if (pollfds[i].revents & POLLIN) {
 
-		// Buscar la location con el prefijo más largo que haga match
-		std::string req_path = _connection.getHeader("Path");
-		ssize_t best_match = _connection.getBestMatch(server, req_path);
-		if (best_match != -1) {
+				Connection _connection(servers[i]);
+				std::cout << "Server: " << i << std::endl;
+				if (_connection.setConnection(servers[i])) {
 
-			if (_connection.receiveRequest(best_match)) {
+					std::string req_path = _connection.getHeader("Path");
+					ssize_t best_match = _connection.getBestMatch(servers[i], req_path);
+					if (best_match != -1) {
+						if (_connection.receiveRequest(best_match)) {
+							if (_connection.isMethodAllowed(_connection, _connection.getHeader("Method"))) {
 
-				if (_connection.isMethodAllowed(_connection, _connection.getHeader("Method"))) {
-
-					std::string method = _connection.getHeader("Method");
-					if (method == "GET")
-						_connection.sendGetResponse();
-					else if (method == "POST")
-						_connection.sendPostResponse();
+								std::string method = _connection.getHeader("Method");
+								if (method == "GET")
+									_connection.sendGetResponse();
+								else if (method == "POST")
+									_connection.sendPostResponse();
+								else
+									_connection.send405Response();
+							} else {
+								_connection.send405Response();
+							}
+						}
+					} else {
+						_connection.send404Response();
+					}
 				}
-				else {
-
-					_connection.send405Response();
-				}
+				pollfds[i].revents = 0;
 			}
 		}
-		else {
-
-			_connection.send404Response();
-		}
 	}
-	close(server.getSocket());
+	for (size_t i = 0; i < servers.size(); i++) {
+        close(servers[i].getSocket());
+    }
+	return (0);
 }
