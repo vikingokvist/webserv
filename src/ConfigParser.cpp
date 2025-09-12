@@ -10,7 +10,7 @@ ConfigParser::ConfigParser(const std::string& filename) {
     parseConfigFile(vars);
     
     // descomentar para imprimar datos
-    // printParsedConfig(_servers);
+    //printParsedConfig(_servers);
 }
 
 ConfigParser::ConfigParser(const ConfigParser& src) {*this = src;}
@@ -48,38 +48,44 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
 
     vars.in_location = false;
     vars.in_server = false;
-    for (vars.it = vars.config_array.begin(); vars.it != vars.config_array.end(); ++vars.it) {
+    for (vars.it = vars.config_array.begin(); vars.it != vars.config_array.end() ; ++vars.it) {
 
         vars.token = *vars.it;
         handleBracketStack(vars);
         if (vars.in_server == true  && vars.in_location == false) {
 
+            int error_server = 0;
             if (vars.token == "listen")
-                listenToken(vars);
+                error_server = listenToken(vars);
             else if (vars.token == "server_name")
-                serverNameToken(vars);
+                error_server = serverNameToken(vars);
             else if (vars.token == "client_max_body_size")
-                clientMaxBodySizeToken(vars);
+                error_server = clientMaxBodySizeToken(vars);
             else if (vars.token == "error_page")
-                errorPageToken(vars);
+                error_server = errorPageToken(vars);
+            if (error_server == 1) {
+                std::cout << "\"" << vars.token << "\"" << " <= ";
+                throw (MisconfigurationException());
+            }
         }
         else if (vars.in_location == true) {
 
+            int error_loc = 0;
             if (vars.token == "root")
-                rootToken(vars);
+                error_loc = rootToken(vars);
             else if (vars.token == "index")
-                indexToken(vars);
+                error_loc = indexToken(vars);
             else if (vars.token == "methods")
-                methodsToken(vars);
+                error_loc = methodsToken(vars);
             else if (vars.token == "autoindex")
-                autoIndexToken(vars);
+                error_loc = autoIndexToken(vars);
             else if (vars.token == "return")
-                redirectToken(vars);
+                error_loc = redirectToken(vars);
             else if (vars.token == "cgi_ext")
-                cgiExtensionToken(vars);
+                error_loc = cgiExtensionToken(vars);
             else if (vars.token == "upload_store")
-                uploadStoreToken(vars);
-            else if (isMisconfiguredLocation(vars.token) == true) {
+                error_loc = uploadStoreToken(vars);
+            if (error_loc == 1) {
                 std::cout << "\"" << vars.token << "\"" << " <= ";
                 throw (MisconfigurationException());
             }
@@ -136,21 +142,27 @@ void ConfigParser::handleBracketStack(ParserVariables& vars) {
     }
 }
 
-void    ConfigParser::rootToken(ParserVariables& vars) {
+int    ConfigParser::rootToken(ParserVariables& vars) {
 
     vars.it++;
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
 
             vars.token.erase(vars.token.size() - 1);
             vars.cur_loc.root = vars.token;
         }
+        else
+            return (1);
     }
+    return (0);
 }
 
-void    ConfigParser::indexToken(ParserVariables& vars) {
+int    ConfigParser::indexToken(ParserVariables& vars) {
+
+    int     error = 1;
 
     vars.it++;
     for (; vars.it != vars.config_array.end(); ++vars.it) {
@@ -163,6 +175,7 @@ void    ConfigParser::indexToken(ParserVariables& vars) {
             break ;
         if (!vars.token.empty() && found_semicolon != std::string::npos) {
 
+            error = 0;
             std::string temp = vars.token.substr(0, found_semicolon);
             vars.cur_loc.indices.push_back(temp);
             break ;
@@ -172,43 +185,56 @@ void    ConfigParser::indexToken(ParserVariables& vars) {
             vars.cur_loc.indices.push_back(vars.token);
         }
     }
+    return (error);
 }
 
-void    ConfigParser::methodsToken(ParserVariables& vars) {
+int    ConfigParser::methodsToken(ParserVariables& vars) {
 
-    bool    stop = false;
+    int     error = 1;
 
     vars.it++;
     for (; vars.it != vars.config_array.end(); ++vars.it) {
 
         vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
-
-            stop = true;
+        if (isMisconfiguredLocation(vars.token) == true) {
+            error = 1;
+            break ;
+        }
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+            error = 0;
             vars.token.erase(vars.token.size() - 1);
         }
         vars.cur_loc.methods.insert(vars.token);
-        if (stop == true)
+        if (error == 0)
             break ;
+
     }
+    return (error);
 }
 
-void    ConfigParser::autoIndexToken(ParserVariables& vars) {
+int    ConfigParser::autoIndexToken(ParserVariables& vars) {
 
     vars.it++;
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';')
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+
             vars.token.erase(vars.token.size() - 1);
-        if (vars.token == "on")
-            vars.cur_loc.auto_index = true;
-        else if (vars.token == "off")
-            vars.cur_loc.auto_index = false;
+            if (vars.token == "on")
+                vars.cur_loc.auto_index = true;
+            else if (vars.token == "off")
+                vars.cur_loc.auto_index = false;
+        }
+        else
+            return (1);
     }
+    return (0);
 }
 
-void    ConfigParser::redirectToken(ParserVariables& vars) {
+int    ConfigParser::redirectToken(ParserVariables& vars) {
 
     ++vars.it;
     if (vars.it != vars.config_array.end()) {
@@ -219,65 +245,107 @@ void    ConfigParser::redirectToken(ParserVariables& vars) {
         if (vars.it != vars.config_array.end()) {
 
             vars.token = *vars.it;
-            if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';')
+            size_t pos = vars.token.find(';');
+            if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
                 vars.token.erase(vars.token.size() - 1);
+            }
+            else
+                return (1);
             vars.cur_loc.redirect = vars.token;
         }
-    } 
+    }
+    return (0);
 }
-void    ConfigParser::cgiExtensionToken(ParserVariables& vars) {
 
+int    ConfigParser::cgiExtensionToken(ParserVariables& vars) {
+
+    int error = 1;
     vars.it++;
     for (; vars.it != vars.config_array.end(); ++vars.it) {
 
         vars.token = *vars.it;
         if (!vars.token.empty()) {
             size_t semicolon_pos = vars.token.find(';');
-            if (semicolon_pos != std::string::npos)
+            if (semicolon_pos != std::string::npos) {
+                error = 0;
                 vars.token.erase(vars.token.size() - 1);
+            }
+            if (isMisconfiguredLocation(vars.token) == true && error == 1)
+                return (1);
             vars.cur_loc.cgi_extensions.insert(vars.token);
-            if (semicolon_pos != std::string::npos)
+            if (error == 0)
                 break ;
         }
     }
     vars.token = *(++vars.it);
+    return (error);
 }
 
-void    ConfigParser::uploadStoreToken(ParserVariables& vars) {
+int    ConfigParser::uploadStoreToken(ParserVariables& vars) {
 
     vars.it++;
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
-
-            vars.token.erase(vars.token.size() - 1);
-            vars.cur_loc.upload_store = vars.token;
-            vars.token = *(++vars.it);
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+                vars.token.erase(vars.token.size() - 1);
+                vars.cur_loc.upload_store = vars.token;
+                vars.token = *(++vars.it);
         }
+        else
+            return (1);
     }
+    return (0);
 }
 
 
-void    ConfigParser::errorPageToken(ParserVariables& vars) {
+int    ConfigParser::errorPageToken(ParserVariables& vars) {
+
+    int     error_code;
+    size_t  pos;
 
     vars.it++;
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
-        std::string temp = vars.token;
+        error_code = std::atoi(vars.token.c_str());
         vars.token = *(++vars.it);
-        vars.cur_server.error_pages[std::atoi(temp.c_str())] = vars.token;
+
+        pos = vars.token.find(';');
+        if (!vars.token.empty() && pos != std::string::npos)
+            vars.token.erase(vars.token.size() - 1);
+        else
+            return (1);
+
+        pos = vars.token.find('/');
+        if (pos != std::string::npos)
+            vars.token = vars.token.substr(pos + 1);
+
+        pos = vars.token.find('/');
+        if (pos != std::string::npos) {
+            
+            std::string root = vars.token.substr(0, pos + 1);
+            std::string file = vars.token.substr(pos + 1);
+            vars.cur_server.error_pages[error_code] = std::make_pair(root, file);
+        }
+        else
+            vars.cur_server.error_pages[error_code] = std::make_pair("", vars.token);
     }
+    return (0);
 }
-void ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
+
+int     ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
 
     vars.it++;
     if (vars.it == vars.config_array.end())
-        return;
+        return (1);
     vars.token = *vars.it;
-    if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';')
+    size_t pos = vars.token.find(';');
+    if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos)
         vars.token.erase(vars.token.size() - 1);
+    else
+        return (1);
     size_t len = vars.token.size();
     char c = vars.token[len - 1];
     unsigned long multiplier = 1;
@@ -296,17 +364,20 @@ void ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
         number_part = vars.token.substr(0, len - 1);
     }
     vars.cur_server.client_max_body_size = str_to_unsigned_long(number_part) * multiplier;
+    return (0);
 }
 
 
-void    ConfigParser::serverNameToken(ParserVariables& vars) {
+int    ConfigParser::serverNameToken(ParserVariables& vars) {
 
+    int error = 1;
     vars.it++;
     for (; vars.it != vars.config_array.end(); ++vars.it) {
         vars.token = *vars.it;
         if (!vars.token.empty()) {
             size_t semicolon_pos = vars.token.find(';');
             if (semicolon_pos != std::string::npos) {
+                error = 0;
                 vars.token.erase(vars.token.size() - 1);
             }
             vars.cur_server.server_names.push_back(vars.token);
@@ -314,9 +385,10 @@ void    ConfigParser::serverNameToken(ParserVariables& vars) {
                 break ;
         }
     }
+    return (error);
 }
 
-void    ConfigParser::listenToken(ParserVariables& vars) {
+int    ConfigParser::listenToken(ParserVariables& vars) {
 
     size_t  colon_pos;
 
@@ -324,12 +396,16 @@ void    ConfigParser::listenToken(ParserVariables& vars) {
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';')
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos)
             vars.token.erase(vars.token.size() - 1);
+        else
+            return (1);
         colon_pos = vars.token.find(':');
         if (colon_pos != std::string::npos)
             vars.cur_server.ips_and_ports.push_back(std::make_pair(vars.token.substr(0, colon_pos), std::atoi(vars.token.substr(colon_pos + 1).c_str())));
     }
+    return (0);
 }
 
 
@@ -403,6 +479,19 @@ bool ConfigParser::isMisconfiguredLocation(std::string token) {
     return (false);
 }
 
+bool ConfigParser::isMisconfiguredServer(std::string token) {
+
+    if (token.find("error_page") != std::string::npos)
+        return (true);
+    if (token.find("client_max_body_size") != std::string::npos)
+        return (true);
+    if (token.find("listen") != std::string::npos)
+        return (true);
+    if (token.find("server_name") != std::string::npos)
+        return (true);    
+    return (false);
+}
+
 const std::vector<ServerConfig>& ConfigParser::getServers() const {
 
     return (_servers);
@@ -437,8 +526,10 @@ void        ConfigParser::printParsedConfig(const std::vector<ServerConfig>& ser
         std::cout << "  Client Max Body Size: " << server.client_max_body_size << "\n";
     
         std::cout << "  Error Pages:\n";
-        for (std::map<int, std::string>::const_iterator it = server.error_pages.begin(); it != server.error_pages.end(); ++it)
-            std::cout << "    " << it->first << " => " << it->second << "\n";
+        for (std::map<int, std::pair<std::string, std::string> >::const_iterator it = server.error_pages.begin(); it != server.error_pages.end(); ++it)
+            std::cout << "    " << it->first
+            << " => (" << it->second.first
+            << ", " << it->second.second << ")\n";
     
         std::cout << "  Locations:\n";
         for (size_t k = 0; k < server.locations.size(); ++k) {

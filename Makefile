@@ -5,7 +5,8 @@ CPPFLAGS = -Wall -Wextra -Werror -std=c++98
 
 RM = rm -rf
 
-SRCS = src/main.cpp src/ConfigParser.cpp src/Servers.cpp src/ServerWrapper.cpp src/Connection.cpp src/Request.cpp
+SRCS = src/main.cpp src/ConfigParser.cpp  src/ServerWrapper.cpp \
+	src/Connection.cpp src/utils/connection_utils.cpp src/ErrorResponse.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 

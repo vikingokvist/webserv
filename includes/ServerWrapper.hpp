@@ -33,7 +33,8 @@ class ServerWrapper
         std::string                         getServerName(size_t server_name_index) const;
         std::vector<std::string>            getServerNamesList(void) const;
         size_t                              getServerNameCount() const;
-        std::string                         getErrorPages(int error_page_index) const;
+        std::string                         getErrorFile(int error_page_index) const;
+        std::string                         getErrorRoot(int error_page_index) const;
         size_t                              getErrorPageCount() const;
         unsigned long                       getClientMaxBodySize() const;
         const std::vector<LocationConfig>&  getLocations() const;

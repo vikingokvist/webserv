@@ -63,15 +63,25 @@ size_t                  ServerWrapper::getServerNameCount() const {
 }
 
 
-std::string             ServerWrapper::getErrorPages(int error_page_index) const {
+std::string             ServerWrapper::getErrorRoot(int error_page_index) const {
 
     if (!config) return ("");
-    std::map<int, std::string>::const_iterator it = config->error_pages.find(error_page_index);
+    std::map<int, std::pair<std::string, std::string> >::const_iterator it;
+    it = config->error_pages.find(error_page_index);
     if (it != config->error_pages.end())
-        return (it->second);
+        return (it->second.first);
     return ("");
 }
 
+std::string             ServerWrapper::getErrorFile(int error_page_index) const {
+
+    if (!config) return ("");
+    std::map<int, std::pair<std::string, std::string> >::const_iterator it;
+    it = config->error_pages.find(error_page_index);
+    if (it != config->error_pages.end())
+        return (it->second.second);
+    return ("");
+}
 
 size_t                  ServerWrapper::getErrorPageCount() const {
 

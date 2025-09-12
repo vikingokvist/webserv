@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/10 15:45:12 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/11 17:42:50 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,6 +23,7 @@ class ServerWrapper;
 #include <iosfwd>
 #include <dirent.h>
 
+#include "ErrorResponse.hpp"
 
 class Connection {
 	
@@ -36,39 +37,36 @@ class Connection {
 		
 	public:
 		Connection(ServerWrapper& _server);
+		~Connection();
 	
-		void								setFd(int _fd);
-		bool								setRequest();
 		bool 								setConnection(ServerWrapper& _server);
+		bool								receiveRequest(ssize_t location_index);
+		bool								setRequest();
+		bool								saveRequest(char *str);
+		void								sendGetResponse();
+		void								sendPostResponse();
+		void								SendAutoResponse(const std::string &direction_path);
+		void								setFd(int _fd);
 		void								setHeader(std::string index, std::string path);
 		void								setFullPath(const std::string& full_path);
+		
 		
 		std::string							getFullPath();
 		int									getFd();
 		char*								getRequest();
 		std::string							getHeader(std::string index);
 		std::ifstream&						getFile();
-		std::string 						getContentType(const std::string& path);
 		ServerWrapper&						getServer();
-		
 		bool								checkRequest();
-		bool								saveRequest(char *str);
-		bool								receiveRequest(ssize_t location_index);
-		void								sendGetResponse();
-		void								sendPostResponse();
-		// void								sendDeleteResponse();	
-		void								SendAutoResponse(const std::string &direction_path);
+		ssize_t								getBestMatch(ServerWrapper& server, std::string req_path);
+		bool								isMethodAllowed(Connection& connection, const std::string& method);
 		void								send400Response(); // Línea de request mal formada
 		void								send403Response(); //Acceso Denegado
 		void								send404Response(); //  Ruta inválida o no existente
 		void								send405Response(); // Método HTTP no soportado
 		void								send505Response(); // Versión HTTP incorrecta
+		// void								sendDeleteResponse();	
 		
-		bool								isMethodAllowed(Connection& connection, const std::string& method);
-		ssize_t								getBestMatch(ServerWrapper& server, std::string req_path);
-		bool								fileExistsAndReadable(const char* path);
-		bool								isValidHttpVersion(const std::string& version);
-		bool								isDirectory(const char* path);
 		
 };
 

@@ -27,20 +27,20 @@ class ConfigParser
         void                        parseFile(const std::string& filename, ParserVariables& vars);
         void                        parseConfigFile(ParserVariables& vars);
         void                        handleBracketStack(ParserVariables& vars);
-        void                        listenToken(ParserVariables& vars);
-        void                        serverNameToken(ParserVariables& vars);
-        void                        clientMaxBodySizeToken(ParserVariables& vars);
-        void                        errorPageToken(ParserVariables& vars);
-        void                        uploadStoreToken(ParserVariables& vars);
-        void                        cgiExtensionToken(ParserVariables& vars);
-        void                        redirectToken(ParserVariables& vars);
-        void                        autoIndexToken(ParserVariables& vars);
-        void                        methodsToken(ParserVariables& vars);
-        void                        indexToken(ParserVariables& vars);
-        void                        rootToken(ParserVariables& vars);
+        int                         listenToken(ParserVariables& vars);
+        int                         serverNameToken(ParserVariables& vars);
+        int                         clientMaxBodySizeToken(ParserVariables& vars);
+        int                         errorPageToken(ParserVariables& vars);
+        int                         uploadStoreToken(ParserVariables& vars);
+        int                         cgiExtensionToken(ParserVariables& vars);
+        int                         redirectToken(ParserVariables& vars);
+        int                         autoIndexToken(ParserVariables& vars);
+        int                         methodsToken(ParserVariables& vars);
+        int                         indexToken(ParserVariables& vars);
+        int                         rootToken(ParserVariables& vars);
         void                        printParsedConfig(const std::vector<ServerConfig>& servers);
         bool                        isMisconfiguredLocation(std::string token);
-
+        bool                        isMisconfiguredServer(std::string token);
 
     public:
         ConfigParser();

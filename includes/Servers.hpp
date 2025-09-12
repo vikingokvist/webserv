@@ -11,19 +11,42 @@ class Servers
 {
     private:
         ConfigParser                        parser;
-        std::vector<ServerWrapper>           servers;
+        std::vector<ServerWrapper>          servers;
 
 
     public:
-        Servers();
-        Servers(const std::string& filename);
-        Servers(const Servers& src);
-        Servers& operator=(const Servers& src);
-        ~Servers();
+        Servers() {};
 
-        ServerWrapper& operator[](size_t index);
-        const ServerWrapper& operator[](size_t index) const;
-        size_t size() const;
+        Servers(const Servers& src) {*this = src;};
+
+        Servers& operator=(const Servers& src) {(void)src; return (*this);};
+
+        ~Servers() {};
+
+        Servers(const std::string& filename) : parser(filename) {
+            const std::vector<ServerConfig>& configs = parser.getServers();
+            for (size_t i = 0; i < configs.size(); ++i) {
+                servers.push_back(ServerWrapper(configs[i]));
+            }
+        };
+        
+        ServerWrapper& operator[](size_t index) {
+    
+            if (index >= servers.size()) {
+                throw std::out_of_range("Invalid server index");
+            }
+            return servers[index];
+        };
+
+        const ServerWrapper& operator[](size_t index) const {
+        
+            if (index >= servers.size()) {
+                throw std::out_of_range("Invalid server index");
+            }
+            return servers[index];
+        };
+
+        size_t  size() const {return (servers.size());};
 };
 
 #endif

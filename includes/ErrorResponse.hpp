@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 13:32:55 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/10 15:39:24 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/11 17:50:21 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,29 +17,20 @@
 #include <sstream>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <fstream>
+
+class Connection;
 
 class ErrorResponse {
 	
 	public:
-		static void send(int fd, const std::string& status, const std::string& title, int contentLength = 85) {
-			std::ostringstream oss;
-			oss << "HTTP/1.1 " << status << "\r\n"
-				<< "Content-Type: text/html\r\n"
-				<< "Content-Length: " << contentLength << "\r\n"
-				<< "Connection: close\r\n\r\n"
-				<< "<!DOCTYPE html><html><head><title>" << title << "</title></head>"
-				<< "<body><h1>" << title << "</h1></body></html>";
+		static void send(int fd, Connection& _connection, int error_code, const std::string& status);
 		
-			std::string response = oss.str();
-			::send(fd, response.c_str(), response.size(), 0);
-			::close(fd);
-		}
-
-	static void send400(int fd) { send(fd, "400 Bad Request", "400 Bad Request"); }
-	static void send403(int fd) { send(fd, "403 Forbidden Access", "403 Forbidden Access"); }
-	static void send404(int fd) { send(fd, "404 Not Found", "404 Not Found"); }
-	static void send405(int fd) { send(fd, "405 Method Not Allowed", "405 Method Not Allowed"); }
-	static void send505(int fd) { send(fd, "505 Version Not Supported", "505 Version Not Supported"); }
+		static void send400(int fd, Connection& _connection) { send(fd, _connection, 400,"400 Bad Request"); }
+		static void send403(int fd, Connection& _connection) { send(fd, _connection, 403,"403 Forbidden Access"); }
+		static void send404(int fd, Connection& _connection) { send(fd, _connection, 404,"404 Not Found"); }
+		static void send405(int fd, Connection& _connection) { send(fd, _connection, 405,"405 Method Not Allowed"); }
+		static void send505(int fd, Connection& _connection) { send(fd, _connection, 505,"505 Version Not Supported"); }
 };
 
 #endif

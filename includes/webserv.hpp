@@ -28,11 +28,12 @@
 #include <sstream>
 #include <cctype>
 #include <cstdarg>
-#include "ErrorResponse.hpp"
 #include <filesystem>
 #include <map>
 #include <set>
 #include <vector>
+#include <utility>
+
 
 struct LocationConfig
 {
@@ -49,11 +50,17 @@ struct LocationConfig
 
 struct ServerConfig
 {
-    std::vector<std::pair<std::string, int> >   ips_and_ports;
-    std::vector<std::string>                    server_names;
-    std::map<int, std::string>                  error_pages;
-    unsigned long                               client_max_body_size;
-    std::vector<LocationConfig>                 locations;
+    std::vector<std::pair<std::string, int> >               ips_and_ports;
+    std::vector<std::string>                                server_names;
+    std::map<int, std::pair<std::string, std::string> >     error_pages;
+    unsigned long                                           client_max_body_size;
+    std::vector<LocationConfig>                             locations;
 };
+
+
+std::string		getContentType(const std::string& path);
+bool			fileExistsAndReadable(const char* path);
+bool			isDirectory(const char* path);
+bool			isValidHttpVersion(const std::string& version);
 
 #endif
