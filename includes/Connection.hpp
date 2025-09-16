@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jaimesan <jaimesan@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/16 11:59:53 by jaimesan         ###   ########.fr       */
+/*   Updated: 2025/09/16 16:25:13 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -66,10 +66,11 @@ class Connection {
 		std::string							getHeader(std::string index);
 		std::ifstream&						getFile();
 		ServerWrapper&						getServer();
-		bool								checkRequest();
+		bool								checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match);
 		ssize_t								getBestMatch();
 		ssize_t								getBestMatch(ServerWrapper& server, std::string req_path);
 		bool								isMethodAllowed(Connection& connection, const std::string& method);
+		bool								fileExistsAndReadable(const char* path, int mode);
 		void								removeSpaces(std::string& str1, std::string& str2);
 		
 		

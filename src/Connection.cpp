@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/16 13:28:36 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/16 16:25:41 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,24 +138,16 @@ bool	Connection::savePostBodyFile(std::string post_body) {
 	return (true);
 }
 
-void Connection::printParserHeader(void) {
-	
-    std::cout << "\033[32m -----------[REQUEST]-----------\033[0m" << std::endl << std::endl;
-    std::map<std::string, std::string>::const_iterator it;
-    for (it = this->_headers.begin(); it != this->_headers.end(); ++it) {
-        std::cout << "\033[32m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
-    }
-    std::cout << "\033[32m--------------------------------\033[0m" << std::endl;
-}
 
 
 bool			Connection::prepareRequest() {
 	
-    std::string req_path = this->_headers["Path"]; // Ej: "/index/estilos.css"
-	ServerWrapper& server = this->_server;
-	ssize_t best_match = getBestMatch(server, req_path);
-	LocationConfig _location = server.getLocation(best_match);
-    std::string root = _location.root;       // "www/"
+    std::string		req_path   = this->_headers["Path"];
+	ServerWrapper&	server	   = this->_server;
+	ssize_t			best_match = getBestMatch(server, req_path);
+	LocationConfig	_location  = server.getLocation(best_match);
+    std::string		root       = _location.root;
+	std::string		relative_path;
 
 	setBestMatch(best_match);
 	if (getBestMatch() == -1) {
@@ -163,7 +155,6 @@ bool			Connection::prepareRequest() {
 		return (false);
 	}
 	
-    // Si la ruta es exactamente igual a la location o termina con '/'
     if (req_path == server.getLocationPath(getBestMatch()) || req_path == server.getLocationPath(getBestMatch()) + "/") {
 		if (_location.indices.size() != 0) {
 			_previus_full_path = _headers["Path"];
@@ -172,62 +163,86 @@ bool			Connection::prepareRequest() {
 		else {
 			this->_full_path = _previus_full_path;
 		}
-
     }
-	
-	
-	
-    // Verificar archivo
+	else {
+		relative_path = req_path.substr(server.getLocationPath(getBestMatch()).size());
+		if (!relative_path.empty() && relative_path[0] == '/')
+			relative_path.erase(0, 1);
+		this->_full_path = root + relative_path;
+	}
+	return (checkRequest(server, root, best_match));
+}
 
-/* 	if (isDirectory(root.c_str()) && _headers["Method"] != "POST") {
+bool			Connection::fileExistsAndReadable(const char* path, int mode) {
+	
+    struct stat st;
+	if (stat(path, &st) != 0) {
+		if (mode)
+        	send404Response();
+        return (false);
+    }
+	if (!S_ISREG(st.st_mode)) {
+		if (mode)
+        	send404Response();
+        return (false);
+    }
+	if (access(path, R_OK) != 0) {
+		if (mode)
+        	send403Response();
+        return (false);
+    }
+    return (true);
+}
 
+bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match) {
+	
+	if (isDirectory(root.c_str()) && this->_headers["Method"] != "POST") {
+		
 		bool found_index = false;
-		for (size_t i = 0; i < server.getLocationIndexCount(getBestMatch()); i++) {
+		for (size_t i = 0; i < server.getLocationIndexCount(best_match); i++) {
 
-			std::string index_path = root + server.getLocationIndexFile(getBestMatch(), i);
-			if (_previus_full_path == "test1/upload.html")
-				index_path = _previus_full_path;
-			if (fileExistsAndReadable(index_path.c_str())) {
+			std::string found_path = root + server.getLocationIndexFile(best_match, i);
+			if (fileExistsAndReadable(found_path.c_str(), 0)) {
 				found_index = true;
 				break ;
 			}
 		}
-		if (!found_index && server.getAutoIndex(getBestMatch()) == true)
-			return (SendAutoResponse(root), true);	
-		else if (!found_index && server.getAutoIndex(getBestMatch()) == false)
-			return (send403Response(), false);
-	} */
-/*     else if (!fileExistsAndReadable(_full_path.c_str()) || !checkRequest()) {
-        send404Response();
-        return (false);
-    } */ 
+		
+		if (!found_index && server.getAutoIndex(best_match) == true)
+			return (SendAutoResponse(root), true);
+		else if (!found_index && server.getAutoIndex(best_match) == false)
+			return (send404Response(), false);
+    	if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
+			return (false);
+		
+		_file.open(this->_full_path.c_str());
+		if (!_file)
+			return (send404Response(), false); 
 
-	_file.open(_full_path.c_str());
-
-	// if (!_file || !checkRequest()) 
-	// 	return (send404Response(), false); 
-    return (true);
-}
-
-
-bool			Connection::checkRequest() {
+		return (true);
+	}
+    if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
+		return (false);
 	
-	if (_headers["Host"].empty()) {
-		
-		send400Response();
-	}
-	if (_headers["Method"] != "GET" && _headers["Method"] != "POST" && _headers["Method"] != "DELETE" ) {
-		
-		send405Response();
-		return (false);
-	}
-	if (!isValidHttpVersion(_headers["Version"])) {
-		
-		std::cerr << "Unsupported HTTP version: " << _headers["Version"] << std::endl;
-		send505Response();
-		return (false);
-	}
+	_file.open(this->_full_path.c_str());
+	if (!_file) 
+		return (send404Response(), false);
 	return (true);
+	// if (_headers["Host"].empty()) {
+		
+	// 	send400Response();
+	// }
+	// if (_headers["Method"] != "GET" && _headers["Method"] != "POST" && _headers["Method"] != "DELETE" ) {
+		
+	// 	send405Response();
+	// 	return (false);
+	// }
+	// if (!isValidHttpVersion(_headers["Version"])) {
+		
+	// 	std::cerr << "Unsupported HTTP version: " << _headers["Version"] << std::endl;
+	// 	send505Response();
+	// 	return (false);
+	// }
 }
 
 void			Connection::sendGetResponse() {
@@ -238,7 +253,7 @@ void			Connection::sendGetResponse() {
 
 	std::ostringstream oss;
 	oss << "HTTP/1.1 200 OK\r\n";
-	oss << "Content-Type: " << getContentType(_full_path) << "\r\n";
+	oss << "Content-Type: " << getContentType(this->_full_path) << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
 	oss << "Connection: close\r\n\r\n";
 	oss << body;
@@ -356,6 +371,8 @@ ssize_t			Connection::getBestMatch(ServerWrapper& server, std::string req_path) 
 	return (best_match);
 }
 
+
+
 void		Connection::removeSpaces(std::string& str1, std::string& str2) {
 
 	while (!str1.empty() && isspace(str1[str1.size() - 1]))
@@ -365,6 +382,17 @@ void		Connection::removeSpaces(std::string& str1, std::string& str2) {
 		str2.erase(0, 1);
 
 }
+
+void Connection::printParserHeader(void) {
+	
+    std::cout << "\033[32m -----------[REQUEST]-----------\033[0m" << std::endl << std::endl;
+    std::map<std::string, std::string>::const_iterator it;
+    for (it = this->_headers.begin(); it != this->_headers.end(); ++it) {
+        std::cout << "\033[32m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
+    }
+    std::cout << "\033[32m--------------------------------\033[0m" << std::endl;
+}
+
 
 ssize_t			Connection::getBestMatch() {return (_best_match);}
 

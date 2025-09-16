@@ -17,25 +17,7 @@ std::string		getContentType(const std::string& path) {
 }
 
 
-bool			fileExistsAndReadable(const char* path) {
-	
-    struct stat st;
-    if (stat(path, &st) != 0) {
-        // No existe el archivo
-        return (false);
-    }
-    if (!S_ISREG(st.st_mode)) {
-        // No es un archivo regular
-        return (false);
-    }
-    int fd = open(path, O_RDONLY); // CAMBIAR A OPEN
-    if (fd == -1) {
-        // No se puede abrir para lectura (sin permiso)
-        return (false);
-    }
-    close(fd);// CAMBIAR A CLOSE
-    return (true);
-}
+
 
 bool			isDirectory(const char* path) {
 
