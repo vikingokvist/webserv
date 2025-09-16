@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/16 11:29:12 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/16 11:49:37 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,17 +48,16 @@ bool			Connection::saveRequest(char *_request) {
 	
 	std::string			request(_request);
 	size_t				header_end = request.find("\r\n\r\n");
-	std::istringstream	iss (request);
+	std::istringstream	iss(request);
 	std::string			line;
 	std::string			post_body;
 
-	if (header_end != std::string::npos) {
-		post_body = request.substr(header_end + 4);
-		request = request.substr(0, header_end);
-	}
-	else
+	if (header_end == std::string::npos)
 		return (send400Response(), false);
-
+		
+	post_body = request.substr(header_end + 4);
+	request   = request.substr(0, header_end);
+	
 	if (!std::getline(iss, line) || line.empty())
 		return (send400Response(), false);
 
@@ -66,8 +65,8 @@ bool			Connection::saveRequest(char *_request) {
     std::string method, path, version;
     request_line >> method >> path >> version;
 
-    this->_headers["Method"] = method;
-    this->_headers["Path"] = path;
+    this->_headers["Method"]  = method;
+    this->_headers["Path"]	  = path;
     this->_headers["Version"] = version;
 
 	while (std::getline(iss, line)) {
@@ -77,38 +76,34 @@ bool			Connection::saveRequest(char *_request) {
 		if (line.empty())
 			break ;
 		
-		size_t	colon_pos = line.find(':');
+		size_t		colon_pos    = line.find(':');
 		if (colon_pos == std::string::npos)
 			continue ;
 		
-		std::string key = line.substr(0, colon_pos);
-		std::string value = line.substr(colon_pos + 1);
+		std::string key			 = line.substr(0, colon_pos);
+		std::string value		 = line.substr(colon_pos + 1);
 		size_t		boundary_pos = line.find("boundary=");
 		
-		if (boundary_pos != std::string::npos) {
+		if (boundary_pos == std::string::npos) {
 			
-    		size_t semicolon_pos = line.find(';', colon_pos);
-    		std::string content_type = line.substr(colon_pos + 1, semicolon_pos - (colon_pos + 1));
-    		while (!content_type.empty() && isspace(content_type[0]))
-				content_type.erase(0,1);
-    		while (!content_type.empty() && isspace(content_type[content_type.size()-1]))
-				content_type.erase(content_type.size()-1,1);
-    		this->_headers[key] = content_type;
-    		this->_headers["Boundary"] = line.substr(boundary_pos + 9);;
+			removeSpaces(key, value);
+			this->_headers[key] = value;
 		}
 		else {
-
-			while (!key.empty() && isspace(key[key.size() - 1]))
-				key.erase(key.size() - 1);
-    		while (!value.empty() && isspace(value[0]))
-				value.erase(0, 1);
-			this->_headers[key] = value;
+			
+  			size_t semicolon_pos       = line.find(';', colon_pos);
+    		std::string content_type   = line.substr(colon_pos + 1, semicolon_pos - (colon_pos + 1));
+			removeSpaces(content_type, content_type);
+    		this->_headers[key] = content_type;
+    		this->_headers["Boundary"] = line.substr(boundary_pos + 9);
 		}
 	}
 	if (!post_body.empty())
 		return (savePostBodyFile(post_body));
 	return (true);
 }
+
+
 
 bool	Connection::savePostBodyFile(std::string post_body) {
 
@@ -364,6 +359,16 @@ ssize_t			Connection::getBestMatch(ServerWrapper& server, std::string req_path) 
 		}
 	}
 	return (best_match);
+}
+
+void		Connection::removeSpaces(std::string& str1, std::string& str2) {
+
+	while (!str1.empty() && isspace(str1[str1.size() - 1]))
+		str1.erase(str1.size() - 1);
+
+	while (!str2.empty() && isspace(str2[0]))
+		str2.erase(0, 1);
+
 }
 
 ssize_t			Connection::getBestMatch() {return (_best_match);}

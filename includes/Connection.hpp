@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/15 16:13:06 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/16 11:43:20 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -70,6 +70,7 @@ class Connection {
 		ssize_t								getBestMatch();
 		ssize_t								getBestMatch(ServerWrapper& server, std::string req_path);
 		bool								isMethodAllowed(Connection& connection, const std::string& method);
+		void								removeSpaces(std::string& str1, std::string& str2);
 		
 		
 		void								send200Response();
