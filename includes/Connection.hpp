@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Connection.hpp                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaimesan <jaimesan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/16 11:43:20 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/16 11:59:53 by jaimesan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -47,7 +47,7 @@ class Connection {
 		~Connection();
 	
 		bool 								setConnection(ServerWrapper& _server, int listening_fd);
-		bool								prepareRequest(ssize_t location_index);
+		bool								prepareRequest();
 		bool								recieveRequest();
 		bool								saveRequest(char *_request);
 		void								sendGetResponse();

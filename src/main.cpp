@@ -78,22 +78,18 @@ int main(int argc, char **argv)
 					std::cout << "Servidor: " << server_idx << " Conectado al socket: " << listening_fd << std::endl;
 
 					if (_connection.setConnection(servers[server_idx], listening_fd)) {
-						if (_connection.getBestMatch() != -1) {
-							if (_connection.prepareRequest(_connection.getBestMatch())) {
- 								if (_connection.isMethodAllowed(_connection, _connection.getHeader("Method"))) {
-									std::string method = _connection.getHeader("Method");
-									if (method == "GET")
-										_connection.sendGetResponse();
-									else if (method == "POST")
-										_connection.sendPostResponse();
-									else
-										_connection.send405Response();
-								} else {
+						if (_connection.prepareRequest()) {
+							if (_connection.isMethodAllowed(_connection, _connection.getHeader("Method"))) {
+								std::string method = _connection.getHeader("Method");
+								if (method == "GET")
+									_connection.sendGetResponse();
+								else if (method == "POST")
+									_connection.sendPostResponse();
+								else
 									_connection.send405Response();
-								}
+							} else {
+								_connection.send405Response();
 							}
-						} else {
-							_connection.send404Response();
 						}
 					}
 					pollfds[i].revents = 0;
