@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/17 13:45:02 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/17 15:56:06 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -77,7 +77,7 @@ bool			Connection::saveRequest(char *_request) {
 		
 		size_t		colon_pos    = line.find(':');
 		if (colon_pos == std::string::npos)
-			continue ;
+			return (sendError(400));
 		
 		std::string key			 = line.substr(0, colon_pos);
 		std::string value		 = line.substr(colon_pos + 1);
@@ -86,7 +86,7 @@ bool			Connection::saveRequest(char *_request) {
 		if (boundary_pos == std::string::npos) {
 			
 			removeSpaces(key, value);
-			if (this->_headers.find(key) != this->_headers.end())
+			if (this->_headers.find(key) != this->_headers.end() || !isValidHeaderName(key) || !isValidHeaderValue(value))
     			return (sendError(400));
 			this->_headers[key] = value;
 		}
@@ -94,13 +94,14 @@ bool			Connection::saveRequest(char *_request) {
 			
   			size_t semicolon_pos       = line.find(';', colon_pos);
     		std::string content_type   = line.substr(colon_pos + 1, semicolon_pos - (colon_pos + 1));
+			std::string boundary_value = line.substr(boundary_pos + 9);
 			removeSpaces(content_type, content_type);
-			if (this->_headers.find(key) != this->_headers.end())
+			if (this->_headers.find(key) != this->_headers.end() || !isValidHeaderName(key) || !isValidHeaderValue(content_type))
     			return (sendError(400));
     		this->_headers[key] = content_type;
-			if (this->_headers.find("Boundary") != this->_headers.end())
+			if (this->_headers.find("Boundary") != this->_headers.end() || !isValidHeaderValue(boundary_value))
     			return (sendError(400));
-    		this->_headers["Boundary"] = line.substr(boundary_pos + 9);
+    		this->_headers["Boundary"] = boundary_value;
 		}
 	}
 	printParserHeader();
@@ -208,8 +209,20 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 		return (sendError(501));
 	if (!isMethodAllowed(server, best_match, this->_headers["Method"]))
 		return (sendError(405));
+	if (this->_headers["Path"].size() >= MAX_URI_SIZE)
+		return (sendError(414));
+	if (this->_headers["Path"].find("../") != std::string::npos)
+		return (sendError(403));
 	if (!isValidHttpVersion(_headers["Version"]))
 		return (sendError(505));
+	if (!this->_headers["Content-Length"].empty() && !isNumber(this->_headers["Content-Length"]))
+		return (sendError(400));
+	if (this->_headers["Method"] == "POST" && this->_headers["Content-Length"].empty())
+		return (sendError(411));
+	if (checkContentLength(this->_headers["Content-Length"].c_str(), server.getMaxClientSize()) == -1)
+		return (sendError(413));
+	if (this->_headers["Method"] == "POST" && (!this->_headers["Content-Type"].empty() || this->_headers["Content-Type"] != "multipart/form-data"))
+		return (sendError(415));
 	if (isDirectory(root.c_str()) && this->_headers["Method"] != "POST") {
 
 		bool found_index = false;
@@ -345,6 +358,7 @@ bool		Connection::sendError(size_t error_code) {
         handlers[403] = &Connection::send403Response;
         handlers[404] = &Connection::send404Response;
         handlers[405] = &Connection::send405Response;
+		handlers[411] = &Connection::send411Response;
         handlers[413] = &Connection::send413Response;
         handlers[414] = &Connection::send414Response;
         handlers[500] = &Connection::send500Response;
@@ -454,9 +468,13 @@ void			Connection::send404Response() { ErrorResponse::send404(getFd(), *this); }
 
 void			Connection::send405Response() { ErrorResponse::send405(getFd(), *this); }
 
+void			Connection::send411Response() { ErrorResponse::send411(getFd(), *this); }
+
 void			Connection::send413Response() { ErrorResponse::send413(getFd(), *this); }
 
 void			Connection::send414Response() { ErrorResponse::send414(getFd(), *this); }
+
+void			Connection::send415Response() { ErrorResponse::send415(getFd(), *this); }
 
 void			Connection::send500Response() { ErrorResponse::send500(getFd(), *this); }
 

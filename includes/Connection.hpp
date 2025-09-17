@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/17 13:42:45 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/17 15:53:33 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 
 #define BUFFER_SIZE 6000
+#define MAX_URI_SIZE 1000
 
 #include "ErrorResponse.hpp"
 #include "./ServerWrapper.hpp"
@@ -22,7 +23,6 @@
 #include <map>
 #include <iosfwd>
 #include <dirent.h>
-#include <functional>
 
 class ServerWrapper;
 extern std::string							_previous_full_path;
@@ -83,8 +83,10 @@ class Connection {
 		void								send403Response();
 		void								send404Response();
 		void								send405Response();
+		void								send411Response();
 		void								send413Response();
 		void								send414Response();
+		void								send415Response();
 		void								send500Response();
 		void								send501Response();
 		void								send502Response();

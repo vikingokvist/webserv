@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 13:32:55 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/12 14:29:17 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/17 15:24:49 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,14 +36,17 @@ class ErrorResponse {
 		static void send403(int fd, Connection& _connection) { send(fd, _connection, 403, "403 Forbidden"); }
 		static void send404(int fd, Connection& _connection) { send(fd, _connection, 404, "404 Not Found"); }
 		static void send405(int fd, Connection& _connection) { send(fd, _connection, 405, "405 Method Not Allowed"); }
+		static void send411(int fd, Connection& _connection) { send(fd, _connection, 411, "411 Length Required"); }
 		static void send413(int fd, Connection& _connection) { send(fd, _connection, 413, "413 Payload Too Large"); }
 		static void send414(int fd, Connection& _connection) { send(fd, _connection, 414, "414 URI Too Long"); }
+		static void send415(int fd, Connection& _connection) { send(fd, _connection, 415, "415 Unsupported Media Type"); }
 		static void send500(int fd, Connection& _connection) { send(fd, _connection, 500, "500 Internal Server Error"); }
 		static void send501(int fd, Connection& _connection) { send(fd, _connection, 501, "501 Not Implemented"); }
 		static void send502(int fd, Connection& _connection) { send(fd, _connection, 502, "502 Bad Gateway"); }
 		static void send503(int fd, Connection& _connection) { send(fd, _connection, 503, "503 Service Unavailable"); }
 		static void send504(int fd, Connection& _connection) { send(fd, _connection, 504, "504 Gateway Timeout"); }
 		static void send505(int fd, Connection& _connection) { send(fd, _connection, 505, "505 HTTP Version Not Supported"); }
+
 
 };
 

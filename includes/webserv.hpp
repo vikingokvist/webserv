@@ -32,6 +32,7 @@
 #include <set>
 #include <vector>
 #include <utility>
+#include <climits>
 
 
 struct LocationConfig
@@ -58,8 +59,11 @@ struct ServerConfig
 
 
 std::string		getContentType(const std::string& path);
-bool			fileExistsAndReadable(const char* path);
 bool			isDirectory(const char* path);
 bool			isValidHttpVersion(const std::string& version);
+bool            isNumber(const std::string &s);
+int             checkContentLength(const char *num_str, unsigned long max_size);
+bool            isValidHeaderName(std::string header_name);
+bool            isValidHeaderValue(std::string header_value);
 
 #endif
