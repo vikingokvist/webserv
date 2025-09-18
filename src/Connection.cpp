@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/17 15:56:06 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/18 11:49:15 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -151,7 +151,7 @@ bool			Connection::prepareRequest() {
 	
     std::string		req_path   = this->_headers["Path"];
 	ServerWrapper&	server	   = this->_server;
-	ssize_t			best_match = getBestMatch(server, req_path);
+	ssize_t			best_match = findBestMatch(server, req_path);
 	LocationConfig	_location  = server.getLocation(best_match);
     std::string		root       = _location.root;
 	std::string		relative_path;
@@ -386,7 +386,7 @@ bool	Connection::isMethodAllowed(ServerWrapper& server, ssize_t best_match, std:
 	return (false);
 }
 
-ssize_t			Connection::getBestMatch(ServerWrapper& server, std::string req_path) {
+ssize_t			Connection::findBestMatch(ServerWrapper& server, std::string req_path) {
 	
 	size_t max_match_len = 0;
 	ssize_t best_match = -1;

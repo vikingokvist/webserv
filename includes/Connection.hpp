@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/17 15:53:33 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/18 11:48:54 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,7 +67,7 @@ class Connection {
 		ServerWrapper&						getServer();
 		bool								checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match);
 		ssize_t								getBestMatch();
-		ssize_t								getBestMatch(ServerWrapper& server, std::string req_path);
+		ssize_t								findBestMatch(ServerWrapper& server, std::string req_path);
 		bool								isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method);		
 		bool								fileExistsAndReadable(const char* path, int mode);
 		void								removeSpaces(std::string& str1, std::string& str2);
