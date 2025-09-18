@@ -45,10 +45,11 @@ void	PollConfig(Servers& servers, std::vector<PollData>& poll_data, std::vector<
 
 int main(int argc, char **argv)
 {
-	if (argc != 2) {
-		std::cout << "Error: Configuration file Missing" << std::endl;
-		return (1);
-	}
+	std::string conf_file = (argc < 2) ? DEFAULT_CONF_FILE : argv[1];
+
+	if (argc > 2)
+    	return (std::cout << ERROR_ARGUMENTS << std::endl, 1);
+
 	try
 	{
 		Servers servers(argv[1]);
