@@ -56,6 +56,8 @@ struct ServerConfig
     std::vector<std::string>                                server_names;
     std::map<int, std::pair<std::string, std::string> >     error_pages;
     unsigned long                                           client_max_body_size;
+    std::string                                             default_root;
+    std::vector<std::string>                                default_indices;
     std::vector<LocationConfig>                             locations;
 };
 

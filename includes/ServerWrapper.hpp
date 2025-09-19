@@ -69,6 +69,9 @@ class ServerWrapper
         std::string                         getErrorRoot(int error_page_index) const;
         size_t                              getErrorPageCount() const;
         unsigned long                       getClientMaxBodySize() const;
+        std::string                         getDefaultIndexFile(size_t index_file) const;
+        size_t                              getDefaultIndexCount() const;
+        std::string                         getDefaultRoot() const;
         const std::vector<LocationConfig>&  getLocations() const;
         const LocationConfig&               getLocation(size_t loc_index) const;
         const std::vector<std::string>&     getLocationIndices(size_t loc_index) const;

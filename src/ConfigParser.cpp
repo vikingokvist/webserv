@@ -75,10 +75,10 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
                 error_server = clientMaxBodySizeToken(vars);
             else if (vars.token == "error_page")
                 error_server = errorPageToken(vars);
-            // else if (vars.token == "root")
-            //     error_server = defaultRoot(vars);
-            // else if (vars.token == "index")
-            //     error_server = defaultIndex(vars);
+            else if (vars.token == "root")
+                error_server = defaultServerRoot(vars);
+            else if (vars.token == "index")
+                error_server = defaultServerIndex(vars);
         }
         else if (vars.in_location == true) {
 
@@ -100,13 +100,11 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
         }
         if (vars.token.find("}") != std::string::npos && vars.in_location == true) {
 
-            std::cout << "bracketInLoc = " << vars.token << std::endl;
             vars.in_location = false;
             vars.cur_server.locations.push_back(vars.cur_loc);
         }
         else if (vars.token.find("}") != std::string::npos && vars.in_location == false && vars.in_server == true) {
 
-            std::cout << "bracketInServer = " << vars.token << std::endl;
             vars.in_server = false;
             this->_servers.push_back(vars.cur_server);
         }
@@ -149,6 +147,52 @@ void ConfigParser::handleBracketStack(ParserVariables& vars) {
             vars.token = *(++vars.it);
         }
     }
+}
+
+int ConfigParser::defaultServerRoot(ParserVariables& vars) {
+
+    vars.it++;
+    if (vars.it != vars.config_array.end()) {
+
+        vars.token = *vars.it;
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+
+            vars.token.erase(vars.token.size() - 1);
+            vars.cur_server.default_root = vars.token;
+        }
+        else
+            return (1);
+    }
+    return (0);
+}
+
+int ConfigParser::defaultServerIndex(ParserVariables& vars) {
+
+    int     error = 1;
+
+    vars.it++;
+    for (; vars.it != vars.config_array.end(); ++vars.it) {
+
+        vars.token = *vars.it;
+        size_t found_semicolon = vars.token.find(';');
+        size_t found_bracket = vars.token.find('}');
+
+        if (!vars.token.empty() && found_bracket != std::string::npos)
+            break ;
+        if (!vars.token.empty() && found_semicolon != std::string::npos) {
+
+            error = 0;
+            std::string temp = vars.token.substr(0, found_semicolon);
+            vars.cur_server.default_indices.push_back(temp);
+            break ;
+        }
+        else if (!vars.token.empty() && found_semicolon == std::string::npos) {
+            
+            vars.cur_server.default_indices.push_back(vars.token);
+        }
+    }
+    return (error);
 }
 
 int    ConfigParser::rootToken(ParserVariables& vars) {
@@ -319,7 +363,6 @@ int    ConfigParser::uploadStoreToken(ParserVariables& vars) {
         else
             return (1);
     }
-    std::cout << "uploadStoreToken = " << vars.token << std::endl;
     return (0);
 }
 
@@ -505,7 +548,6 @@ bool ConfigParser::isMisconfiguredLocation(ParserVariables& vars) {
         return (false);
     if (token.find("index") != std::string::npos)
         return (false);
-    std::cout << "\033[32m isMisconfiguredLocation = \033[0m" << token << std::endl;
     return (true);
 }
 
@@ -530,8 +572,7 @@ bool ConfigParser::isMisconfiguredServer(ParserVariables& vars) {
     if (token.find("root") != std::string::npos)
         return (false);
     if (token.find("index") != std::string::npos)
-        return (false);
-    std::cout << "\033[32m isMisconfiguredServer = \033[0m" << token << std::endl;  
+        return (false);  
     return (true);
 }
 
@@ -574,6 +615,18 @@ void        ConfigParser::printParsedConfig(const std::vector<ServerConfig>& ser
             << " => (" << it->second.first
             << ", " << it->second.second << ")\n";
     
+        std::cout << "Server Default Indices: ";
+        if (!server.default_indices.empty()) {
+            for (size_t l = 0; l < server.default_indices.size(); l++) {
+                std::cout << "      Index[" << l << "]: " << server.default_indices[l] << std::endl;
+            }
+        }
+
+        std::cout << "Server Default Root: ";
+        if (!server.default_root.empty())
+            std::cout << "      Default Root: " << server.default_root << "\n";
+
+        
         std::cout << "  Locations:\n";
         for (size_t k = 0; k < server.locations.size(); ++k) {
             const LocationConfig& loc = server.locations[k];

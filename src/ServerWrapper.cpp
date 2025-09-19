@@ -101,7 +101,28 @@ unsigned long                  ServerWrapper::getClientMaxBodySize() const {
 }
 
 
+size_t                              ServerWrapper::getDefaultIndexCount() const {
 
+    if (!config || config->default_indices.empty())
+        return (0);
+    return (config->default_indices.size());
+}
+
+std::string                         ServerWrapper::getDefaultIndexFile(size_t index_file) const {
+
+    if (!config || index_file >= config->default_indices.size()) 
+        return ("");
+
+    const std::vector<std::string>& indices = config->default_indices;
+
+    return (indices[index_file]);
+}
+
+std::string                         ServerWrapper::getDefaultRoot() const {
+
+    if (!config || config->default_root.empty()) return ("");
+    return (config->default_root);
+}
 
 const std::vector<LocationConfig>& ServerWrapper::getLocations() const {
 
