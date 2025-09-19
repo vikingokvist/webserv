@@ -53,57 +53,54 @@ int main(int argc, char **argv)
 	try
 	{
 		Servers servers(conf_file);
-		std::cout << "IT WORKED" << std::endl;
 		// Setup all servers
 		SetupAllServers(servers);
 
-		// std::vector<PollData> poll_data;
-		// std::vector<pollfd> pollfds;
-		// PollConfig(servers, poll_data, pollfds);
+		std::vector<PollData> poll_data;
+		std::vector<pollfd> pollfds;
+		PollConfig(servers, poll_data, pollfds);
 
-		// while (true) 
-		// {
-		// 	// Wait for events on all server sockets
-    	//     int ret = poll(pollfds.data(), pollfds.size(), -1);
-    	//     if (ret == -1) {
-    	//         std::cerr << "poll() failed: " << strerror(errno) << std::endl;
-    	//         continue;
-    	//     }
+		while (true) 
+		{
+			// Wait for events on all server sockets
+    	    int ret = poll(pollfds.data(), pollfds.size(), -1);
+    	    if (ret == -1) {
+    	        std::cerr << "poll() failed: " << strerror(errno) << std::endl;
+    	        continue;
+    	    }
 
-		// 	for (size_t i = 0; i < pollfds.size(); i++) {
-		// 		if (pollfds[i].revents & POLLIN) {
+			for (size_t i = 0; i < pollfds.size(); i++) {
+				if (pollfds[i].revents & POLLIN) {
 
-		// 			size_t server_idx = poll_data[i].server_index;
-		// 			int listening_fd = pollfds[i].fd;
-		// 			Connection _connection(servers[server_idx]);
-		// 			std::cout << "\033[33mServer[" << server_idx << "]" <<" with socket: " << listening_fd << " \033[0m" <<std::endl;
+					size_t server_idx = poll_data[i].server_index;
+					int listening_fd = pollfds[i].fd;
+					Connection _connection(servers[server_idx]);
+					std::cout << "\033[33mServer[" << server_idx << "]" <<" with socket: " << listening_fd << " \033[0m" <<std::endl;
 
-		// 			if (_connection.setConnection(servers[server_idx], listening_fd)) {
-		// 				if (_connection.prepareRequest()) {
+					if (_connection.setConnection(servers[server_idx], listening_fd)) {
+						if (_connection.prepareRequest()) {
 
-		// 					if (_connection.getHeader("Method") == "GET")
-		// 						_connection.sendGetResponse();
-		// 					else if (_connection.getHeader("Method") == "POST")
-		// 						_connection.sendPostResponse();
-		// 					else if (_connection.getHeader("Method") == "DELETE")
-		// 						std::cout << "DELETE METHOD NOT SUPPORTED YET" << std::endl;
-		// 				}
-		// 				else
-		// 					_connection.sendError(404);
-		// 			}
-		// 			pollfds[i].revents = 0;
-		// 		}
-		// 	}
-		// }
-		// for (size_t i = 0; i < servers.size(); i++) {
-    	//     close(servers[i].getSocket());
-    	// }
+							if (_connection.getHeader("Method") == "GET")
+								_connection.sendGetResponse();
+							else if (_connection.getHeader("Method") == "POST")
+								_connection.sendPostResponse();
+							else if (_connection.getHeader("Method") == "DELETE")
+								std::cout << "DELETE METHOD NOT SUPPORTED YET" << std::endl;
+						}
+						else
+							_connection.sendError(404);
+					}
+					pollfds[i].revents = 0;
+				}
+			}
+		}
+		for (size_t i = 0; i < servers.size(); i++) {
+    	    close(servers[i].getSocket());
+    	}
 	}
 	catch(const std::exception& e)
 	{
 		std::cerr << e.what() << '\n';
 	}
-	
-   
 	return (0);
 }

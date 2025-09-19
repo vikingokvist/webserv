@@ -10,7 +10,7 @@ ConfigParser::ConfigParser(const std::string& filename) {
     parseConfigFile(vars);
     
     // descomentar para imprimar datos
-    //printParsedConfig(_servers);
+    // printParsedConfig(_servers);
 }
 
 ConfigParser::ConfigParser(const ConfigParser& src) {*this = src;}
