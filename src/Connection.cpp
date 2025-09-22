@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/22 16:14:37 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/22 17:25:08 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -292,8 +292,6 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 		return (sendError(400));
 	if (!this->_headers["Method"].empty() && (this->_headers["Method"] != "GET" && this->_headers["Method"] != "POST" && this->_headers["Method"] != "DELETE"))
 		return (sendError(501));
-	if (!isMethodAllowed(server, best_match, this->_headers["Method"]))
-		return (sendError(405));
 	if (this->_headers["Path"].size() >= MAX_URI_SIZE)
 		return (sendError(414));
 	if (this->_headers["Path"].find("../") != std::string::npos)
@@ -308,8 +306,10 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 		return (sendError(413));
 	if (this->_headers["Method"] == "POST" && (this->_headers["Content-Type"].empty() || this->_headers["Content-Type"] != "multipart/form-data"))
 		return (sendError(415));
-	if (this->_headers["Method"] != "POST") {
+	if (this->_headers["Method"] == "GET") {
 
+		if (!isMethodAllowed(server, best_match, this->_headers["Method"]))
+			return (sendError(405));
 		if (isDirectory(root.c_str())) {
 
 			if (this->_full_path.empty() && server.getAutoIndex(best_match) == true)
@@ -330,7 +330,8 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 			return (sendError(404));	
 	}
 	else if (this->_headers["Method"] == "POST") {
-		
+		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
+			return (sendError(405));
 		for (size_t i = 0; i < this-> parts.size(); ++i) {
 			std::string full_path = root + this->parts[i].filename;
 			std::ofstream file_post(full_path.c_str());
@@ -339,6 +340,26 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 				return (std::cerr << ERROR_CREATE_FILE << full_path << std::endl, false);
 			file_post.write(parts[i].content.data(), parts[i].content.size());
 			file_post.close();
+		}
+	}
+	else if (this->_headers["Method"] == "DELETE") {
+
+		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
+			return (sendError(405));
+		// Intento de Path transversal
+		// Intento de eliminar archivos para atras o archivos importantes como .conf
+		if (this->_full_path.find("%2e%2e") != std::string::npos) {
+				return (sendError(403));
+		}
+
+		// Si existe o no 
+		if (!fileExistsAndReadable(this->_full_path.c_str(), 0)) {
+			return (sendError(404));
+		}
+
+		// Eliminar
+		if (remove(this->_full_path.c_str()) != 0) {
+        	return (sendError(403));
 		}
 	}
 	return (true);
@@ -381,6 +402,21 @@ void			Connection::sendPostResponse() {
 	close(getFd());
 }
 
+void			Connection::sendDeleteResponse() {
+	
+	std::ostringstream body_stream;
+	body_stream << getFile().rdbuf();
+	std::string body = body_stream.str();
+
+    std::ostringstream oss;
+    oss << "HTTP/1.1 204 No Content\r\n";
+    oss << "Connection: close\r\n\r\n";
+	oss << body;
+
+	std::string response = oss.str();
+	send(getFd(), response.c_str(), response.size(), 0);
+	close(getFd());
+}
 
 void			Connection::SendAutoResponse(const std::string &direction_path) {
 

@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 							else if (_connection.getHeader("Method") == "POST")
 								_connection.sendPostResponse();
 							else if (_connection.getHeader("Method") == "DELETE")
-								std::cout << "DELETE METHOD NOT SUPPORTED YET" << std::endl;
+								_connection.sendDeleteResponse();
 						}
 						else
 							_connection.sendError(404);

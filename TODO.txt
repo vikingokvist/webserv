@@ -2,7 +2,6 @@ TODO limits
 
 - IF in .conf file, there is a variable with no value set (example: root;) it should throw an error - CONFIGPARSER
 
-
 - IF netcat and you leave connection open, the server shouldnt hang indefenitely, and close the connection
 
 - check in request if non-ascii characters

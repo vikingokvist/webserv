@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/22 16:06:22 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/22 16:41:34 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -60,6 +60,7 @@ class Connection {
 		bool								saveRequest();
 		void								sendGetResponse();
 		void								sendPostResponse();
+		void								sendDeleteResponse();
 		void								SendAutoResponse(const std::string &direction_path);
 		bool								savePostBodyFile(std::string post_body);
 		void								printParserHeader(void);
