@@ -1,6 +1,6 @@
 TODO limits
 
-- IF in .conf file, there is a variable with no value set (example: root;) it should throw an error
+- IF in .conf file, there is a variable with no value set (example: root;) it should throw an error - CONFIGPARSER
 
 - IF no methods variable is declared, it means ALL methods are allowed
 

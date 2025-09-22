@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/22 16:06:19 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/22 16:14:37 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -463,7 +463,7 @@ bool		Connection::sendError(size_t error_code) {
 
 bool	Connection::isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method) {
 	
-	if (method.empty()) // if no METHODS declared, then any method is allowed
+	if (server.getMethods(best_match).empty()) // if no METHODS declared, then any method is allowed
 		return (true);
 	for (size_t j = 0; j < server.getMethodsSize(best_match); j++) {
 		
