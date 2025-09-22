@@ -2,7 +2,9 @@ TODO limits
 
 - IF in .conf file, there is a variable with no value set (example: root;) it should throw an error - CONFIGPARSER
 
-- IF no methods variable is declared, it means ALL methods are allowed
 
-- IF there isnt a location / or the location / doesnt include "index" and/or "root" THEN it should default to server ones IF declared
+- IF netcat and you leave connection open, the server shouldnt hang indefenitely, and close the connection
+
+- check in request if non-ascii characters
+
 
