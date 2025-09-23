@@ -8,4 +8,5 @@ TODO limits
 
 - Implementar CGI 
 
+- Checkar que todo tire errores correctos a std::cerr
 

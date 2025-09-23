@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/23 11:43:22 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/23 13:46:36 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,7 +33,7 @@ bool			Connection::setConnection(ServerWrapper& _server, int listening_fd) {
 
 bool	Connection::recieveRequest() {
 	
-	_request_complete.clear();
+	this->_request_complete.clear();
 	char buffer[8192];
 	int bytes_received;
 	int content_length = 0;
@@ -41,37 +41,39 @@ bool	Connection::recieveRequest() {
 	// Leer headers + primer bloque
 	bytes_received = recv(getFd(), buffer, sizeof(buffer), 0);
 	if (bytes_received <= 0) return false;
-	_request_complete.append(buffer, bytes_received);
+	this->_request_complete.append(buffer, bytes_received);
+	
 
 	// Buscar Content-Length
-	size_t cl_pos = _request_complete.find("Content-Length:");
+	size_t cl_pos = this->_request_complete.find("Content-Length:");
 	if (cl_pos != std::string::npos) {
-		size_t cl_end = _request_complete.find("\r\n", cl_pos);
-		std::string cl_str = _request_complete.substr(cl_pos + 15, cl_end - (cl_pos + 15));
+		size_t cl_end = this->_request_complete.find("\r\n", cl_pos);
+		std::string cl_str = this->_request_complete.substr(cl_pos + 15, cl_end - (cl_pos + 15));
 		content_length = atoi(cl_str.c_str());
 		std::cout << "Content-Length: " << content_length << std::endl;
 	}
 
-	size_t header_end = _request_complete.find("\r\n\r\n");
-	size_t body_received = (_request_complete.size() > header_end + 4) ? _request_complete.size() - (header_end + 4) : 0;
+	size_t header_end = this->_request_complete.find("\r\n\r\n");
+	size_t body_received = (this->_request_complete.size() > header_end + 4) ? _request_complete.size() - (header_end + 4) : 0;
 	
 	// Leer todo el body en bloques
 	while ((int)body_received < content_length) {
 		
 		bytes_received = recv(getFd(), buffer, sizeof(buffer), 0);
 		if (bytes_received <= 0) break;
-		_request_complete.append(buffer, bytes_received);
+		this->_request_complete.append(buffer, bytes_received);
 		body_received += bytes_received;
 	}
 	
 	std::cout << "Total received: " << _request_complete.size() << " bytes\n";
-	return true;
+	std::cout << this->_request_complete << std::endl;
+	return (true);
 }
 
 
 bool			Connection::saveRequest() {
 	
-	std::string			request(_request_complete);
+	std::string			request(this->_request_complete);
 	size_t				header_end = request.find("\r\n\r\n");
 	std::istringstream	iss(request);
 	std::string			line;
@@ -137,6 +139,7 @@ bool			Connection::saveRequest() {
 }
 
 std::vector<Part> parseMultipart(const std::string& body, const std::string& boundary) {
+	
 	std::vector<Part> parts;
 	std::string delimiter = "--" + boundary;
 	std::string endDelimiter = delimiter + "--";
@@ -151,7 +154,8 @@ std::vector<Part> parseMultipart(const std::string& body, const std::string& bou
 		if (body.substr(pos, 2) == "\r\n") pos += 2;
 
 		// Si encontramos el delimitador final
-		if (body.compare(pos, endDelimiter.size(), endDelimiter) == 0) break;
+		if (body.compare(pos, endDelimiter.size(), endDelimiter) == 0)
+			break;
 
 		// Buscar fin de headers
 		size_t headerEnd = body.find("\r\n\r\n", pos);
@@ -203,14 +207,14 @@ std::vector<Part> parseMultipart(const std::string& body, const std::string& bou
 		parts.push_back(p);
 		start = next;
 	}
-	return parts;
+	return (parts);
 }
 
 bool	Connection::savePostBodyFile(std::string post_body) {
-	this->parts = parseMultipart(
-		post_body,
-		this->_headers["Boundary"]
-	);
+	
+	if (!this->_headers["Boundary"].empty()) {
+		this->parts = parseMultipart(post_body, this->_headers["Boundary"]);
+	}
 	return (true);
 }
 
@@ -312,7 +316,7 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 		if (isDirectory(root.c_str())) {
 
 			if (this->_full_path.empty() && server.getAutoIndex(best_match) == true)
-				return (SendAutoResponse(root), true);
+				return (sendAutoResponse(root), true);
 			else if (this->_full_path.empty() && server.getAutoIndex(best_match) == false)
 				return (sendError(404));
 			if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
@@ -364,107 +368,6 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 	return (true);
 }
 
-void			Connection::sendGetResponse() {
-	
-	std::ostringstream body_stream;
-	body_stream << getFile().rdbuf();
-	std::string body = body_stream.str();
-
-	std::ostringstream oss;
-	oss << "HTTP/1.1 200 OK\r\n";
-	oss << "Content-Type: " << getContentType(this->_full_path) << "\r\n";
-	oss << "Content-Length: " << body.size() << "\r\n";
-	oss << "Connection: close\r\n\r\n";
-	oss << body;
-
-	std::string response = oss.str();
-	send(getFd(), response.c_str(), response.size(), 0);
-	close(getFd());
-}
-
-void			Connection::sendPostResponse() {
-
-	std::ostringstream body_stream;
-	body_stream << getFile().rdbuf();
-	std::string body = body_stream.str();
-	
-
-	// Redirigir al cliente a index.html
-	std::ostringstream oss;
-	oss << "HTTP/1.1 303 See Other\r\n";
-	oss << "Location: "<< _previous_full_path  << "\r\n";
-	oss << "Content-Length: " << body.size() << "\r\n";
-	oss << "Connection: close\r\n\r\n";
-
-	std::string response = oss.str();
-	send(getFd(), response.c_str(), response.size(), 0);
-	close(getFd());
-}
-
-void			Connection::sendDeleteResponse() {
-	
-	std::ostringstream body_stream;
-	body_stream << getFile().rdbuf();
-	std::string body = body_stream.str();
-
-    std::ostringstream oss;
-    oss << "HTTP/1.1 204 No Content\r\n";
-    oss << "Connection: close\r\n\r\n";
-	oss << body;
-
-	std::string response = oss.str();
-	send(getFd(), response.c_str(), response.size(), 0);
-	close(getFd());
-}
-
-void			Connection::SendAutoResponse(const std::string &direction_path) {
-
-	DIR * dir = opendir(direction_path.c_str());
-	if (!dir) {
-		sendError(403);
-		return ;
-	}
-	std::ostringstream body;
-	body << "<html><head><title>Index of " << _headers["Path"] << "</title></head><body>";
-	body << "<h1>Index of " << _headers["Path"] << "</h1><ul>";
-
-	struct dirent* entry;
-	while ((entry = readdir(dir)) != NULL) {
-		std::string name = entry->d_name;
-
-		// Skip "." and ".."
-		if (name == "." || name == "..")
-			continue;
-
-		std::string href = _headers["Path"];
-		if (href.empty() || href[href.size()-1] != '/')
-			href += "/";
-		href += name;
-
-		// Check if directory to add trailing slash
-		struct stat st;
-		std::string fullPath = direction_path + "/" + name;
-		if (stat(fullPath.c_str(), &st) == 0 && S_ISDIR(st.st_mode)) {
-			name += "/";
-			href += "/";
-		}
-
-		body << "<li><a href=\"" << href << "\">" << name << "</a></li>\n";
-	}
-
-	body << "</ul></body></html>";
-	closedir(dir);
-
-	std::string bodyStr = body.str();
-	std::ostringstream response;
-	response << "HTTP/1.1 200 OK\r\n";
-	response << "Content-Type: text/html\r\n";
-	response << "Content-Length: " << bodyStr.size() << "\r\n";
-	response << "Connection: close\r\n\r\n";
-	response << bodyStr;
-
-	send(getFd(), response.str().c_str(), response.str().size(), 0);
-}
 
 bool		Connection::sendError(size_t error_code) {
 
@@ -570,60 +473,53 @@ void			Connection::setHeader(std::string index,std::string value) {this->_header
 
 void			Connection::setFullPath(const std::string& full_path) {this->_full_path = full_path;}
 
-void			Connection::send200Response() { ErrorResponse::send200(getFd(), *this); }
 
-void			Connection::send201Response() { ErrorResponse::send201(getFd(), *this); }
+void			Connection::sendAutoResponse(const std::string &direction_path) {SendResponse::sendAutoResponse(getFd(), *this, direction_path); }
+		
+void			Connection::sendDeleteResponse() {SendResponse::sendDeleteResponse(getFd(), *this); }
 
-void			Connection::send204Response() { ErrorResponse::send204(getFd(), *this); }
+void			Connection::sendGetResponse() {SendResponse::sendGetResponse(getFd(), *this); }
 
-void			Connection::send301Response() { ErrorResponse::send301(getFd(), *this); }
+void			Connection::sendPostResponse() {SendResponse::sendPostResponse(getFd(), *this, _previous_full_path); }
 
-void			Connection::send302Response() { ErrorResponse::send302(getFd(), *this); }
+void			Connection::send200Response() { SendResponse::send200(getFd(), *this); }
 
-void			Connection::send400Response() { ErrorResponse::send400(getFd(), *this); }
+void			Connection::send201Response() { SendResponse::send201(getFd(), *this); }
 
-void			Connection::send401Response() { ErrorResponse::send401(getFd(), *this); }
+void			Connection::send204Response() { SendResponse::send204(getFd(), *this); }
 
-void			Connection::send403Response() { ErrorResponse::send403(getFd(), *this); }
+void			Connection::send301Response() { SendResponse::send301(getFd(), *this); }
 
-void			Connection::send404Response() { ErrorResponse::send404(getFd(), *this); }
+void			Connection::send302Response() { SendResponse::send302(getFd(), *this); }
 
-void			Connection::send405Response() { ErrorResponse::send405(getFd(), *this); }
+void			Connection::send400Response() { SendResponse::send400(getFd(), *this); }
 
-void			Connection::send411Response() { ErrorResponse::send411(getFd(), *this); }
+void			Connection::send401Response() { SendResponse::send401(getFd(), *this); }
 
-void			Connection::send413Response() { ErrorResponse::send413(getFd(), *this); }
+void			Connection::send403Response() { SendResponse::send403(getFd(), *this); }
 
-void			Connection::send414Response() { ErrorResponse::send414(getFd(), *this); }
+void			Connection::send404Response() { SendResponse::send404(getFd(), *this); }
 
-void			Connection::send415Response() { ErrorResponse::send415(getFd(), *this); }
+void			Connection::send405Response() { SendResponse::send405(getFd(), *this); }
 
-void			Connection::send500Response() { ErrorResponse::send500(getFd(), *this); }
+void			Connection::send411Response() { SendResponse::send411(getFd(), *this); }
 
-void			Connection::send501Response() { ErrorResponse::send501(getFd(), *this); }
+void			Connection::send413Response() { SendResponse::send413(getFd(), *this); }
 
-void			Connection::send502Response() { ErrorResponse::send502(getFd(), *this); }
+void			Connection::send414Response() { SendResponse::send414(getFd(), *this); }
 
-void			Connection::send503Response() { ErrorResponse::send503(getFd(), *this); }
+void			Connection::send415Response() { SendResponse::send415(getFd(), *this); }
 
-void			Connection::send504Response() { ErrorResponse::send504(getFd(), *this); }
+void			Connection::send500Response() { SendResponse::send500(getFd(), *this); }
 
-void			Connection::send505Response() { ErrorResponse::send505(getFd(), *this); }
+void			Connection::send501Response() { SendResponse::send501(getFd(), *this); }
+
+void			Connection::send502Response() { SendResponse::send502(getFd(), *this); }
+
+void			Connection::send503Response() { SendResponse::send503(getFd(), *this); }
+
+void			Connection::send504Response() { SendResponse::send504(getFd(), *this); }
+
+void			Connection::send505Response() { SendResponse::send505(getFd(), *this); }
 
 
-/* void Connection::sendDeleteResponse() {
-	std::ostringstream body_stream;
-	body_stream << getFile().rdbuf();
-	std::string body = body_stream.str();
-
-	std::ostringstream oss;
-	oss << "HTTP/1.1 200 OK\r\n";
-	oss << "Content-Type: " << getContentType(getHeader("Path")) << "\r\n";
-	oss << "Content-Length: " << body.size() << "\r\n";
-	oss << "Connection: close\r\n\r\n";
-	oss << body;
-
-	std::string response = oss.str();
-	send(getFd(), response.c_str(), response.size(), 0);
-	close(getFd());
-} */

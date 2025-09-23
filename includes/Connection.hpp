@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/22 16:41:34 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/23 13:44:46 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@
 #define MAX_URI_SIZE 1000
 #define ERROR_CREATE_FILE "Error: Could not create file in: "
 
-#include "ErrorResponse.hpp"
+#include "SendResponse.hpp"
 #include "./ServerWrapper.hpp"
 #include <iostream>
 #include <map>
@@ -58,10 +58,8 @@ class Connection {
 		bool								prepareRequest();
 		bool								recieveRequest();
 		bool								saveRequest();
-		void								sendGetResponse();
-		void								sendPostResponse();
-		void								sendDeleteResponse();
-		void								SendAutoResponse(const std::string &direction_path);
+
+		
 		bool								savePostBodyFile(std::string post_body);
 		void								printParserHeader(void);
 		void								setBestMatch(ssize_t _best_match);	
@@ -81,6 +79,11 @@ class Connection {
 		bool								fileExistsAndReadable(const char* path, int mode);
 		void								removeSpaces(std::string& str1, std::string& str2);
 		
+
+		void								sendGetResponse();
+		void								sendPostResponse();
+		void								sendDeleteResponse();
+		void								sendAutoResponse(const std::string &direction_path);
 		bool								sendError(size_t error_code);
 		void								send200Response();
 		void								send201Response();
@@ -103,7 +106,7 @@ class Connection {
 		void								send504Response();
 		void								send505Response();
 
-		// void								sendDeleteResponse();	
+
 		
 		
 };

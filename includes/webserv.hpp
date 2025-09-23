@@ -62,7 +62,6 @@ struct ServerConfig
 };
 
 
-std::string		getContentType(const std::string& path);
 bool			isDirectory(const char* path);
 bool			isValidHttpVersion(const std::string& version);
 bool            isNumber(const std::string &s);

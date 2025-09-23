@@ -80,6 +80,8 @@ int main(int argc, char **argv)
 					if (_connection.setConnection(servers[server_idx], listening_fd)) {
 						if (_connection.prepareRequest()) {
 
+							// if (isCgiScript(_connection.getFullPath()))
+							// 	_connection.handleCgiRequest();
 							if (_connection.getHeader("Method") == "GET")
 								_connection.sendGetResponse();
 							else if (_connection.getHeader("Method") == "POST")
