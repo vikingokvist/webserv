@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/22 17:25:08 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/23 11:43:22 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -255,7 +255,6 @@ bool			Connection::prepareRequest() {
 			relative_path.erase(0, 1);
 		this->_full_path = root + relative_path;
 	}
-
 	return (checkRequest(server, root, best_match));
 }
 
