@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/24 13:54:00 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/24 15:28:25 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -135,10 +135,6 @@ bool			Connection::saveRequest() {
 	}
 	if (this->_headers["Content-Type"] == "application/json")
 		std::cout << "Not implemented yet" << std::endl;
-	else if (this->_headers["Content-Type"] == "application/x-www-form-urlencoded") {
-		this->_x_www_form_urlencoded = parseUrlEncoded(this->_post_body);
-		printParserBody();
-	}
 	else if (this->_headers["Content-Type"] == "multipart/form-data")
 		this->parts = parseMultipart(this->_post_body, this->_headers["Boundary"]);
 	return (true);
@@ -284,102 +280,9 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 	return (true);
 }
 
-void			Connection::handleCgiRequest() {
-	
-	// int		pipe_parent[2];
-	// int		pipe_child[2];
-	// pid_t	pid;
-	
-	
-	// if (pipe(pipe_parent) == -1) {
-	// 	std::cerr << "Parent pipe() failed: " << strerror(errno) << std::endl;
-    // 	sendError(500); return ;
-	// }
-	// if (pipe(pipe_child) == -1) {
-	// 	std::cerr << "Child pipe() failed: " << strerror(errno) << std::endl;
-    // 	sendError(500); return ;
-	// }
-	// pid = fork();
-	// if (pid < 0) {
-	// 	std::cerr << "fork() failed: " << strerror(errno) << std::endl;
-    // 	sendError(500); return ;
-	// }
-	// else if (pid == 0) {
-		
-	// 	if (dup2(pipe_parent[0], STDIN_FILENO) == -1) {
-	// 		std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
-	// 		sendError(500); exit(1);
-	// 	}
-	// 	if (dup2(pipe_child[1], STDOUT_FILENO) == -1) {
-	// 		std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
-	// 		sendError(500); exit(1);
-	// 	}
-	// 	close(pipe_parent[1]);
-	// 	close(pipe_child[0]);
-		
-	// 	std::string script_name;
-	// 	std::string script_file_path;
-	// 	size_t script_name_pos = this->_headers["Path"].rfind('/');
-	// 	if (script_name_pos != std::string::npos) {
-	// 		script_name = this->_headers["Path"].substr(script_name_pos + 1);
-	// 		script_file_path = this->_headers["Root"] + script_name;
-	// 	}
-		
-	// 	if (access(script_file_path.c_str(), R_OK) != 0) {
-	// 		//CHECK IF NEED TO CLOSE
-	// 		std::cerr << "File not executable: " << strerror(errno) << std::endl;
-	// 		sendError(403); exit(1);
-	// 	}
 
-	// 	std::vector<std::string> env_strings;
-	// 	std::vector<char*> envp;
 
-		
-	// 	env_strings.push_back("REQUEST_METHOD=" + this->_headers["Method"]);
-	// 	env_strings.push_back("CONTENT_LENGTH=" + this->_headers["Content-Length"]);
-	// 	env_strings.push_back("CONTENT_TYPE=" + this->_headers["Content-Type"]);
-	// 	env_strings.push_back("SCRIPT_NAME=" + script_name);
-	// 	env_strings.push_back("SCRIPT_FILEPATH=" + script_file_path);
-	// 	env_strings.push_back("SERVER_PROTOCOL=" + this->_headers["Version"]);
-		
-	// 	for (size_t i = 0; i < env_strings.size(); i++)
-	// 		envp.push_back(const_cast<char*>(env_strings[i].c_str()));
-	// 	envp.push_back(NULL);
 
-	// 	char *argv[] = { (char*)script_file_path.c_str(), NULL };
-		
-	// 	if (execve(script_file_path.c_str(), argv, envp.data()) == -1) {
-	// 		std::cerr << "Child execve() failed: " << strerror(errno) << std::endl;
-	// 		sendError(500);exit(1);
-	// 	}
-	// }
-	// else {
-	// 	close(pipe_parent[0]);
-	// 	close(pipe_child[1]);
-
-	// 	write(pipe_parent[1], this->_post_body.c_str(), this->_post_body.size());
-	// 	close(pipe_parent[1]);
-
-	// 	char buffer[4096];
-	// 	std::string cgi_output;
-	// 	ssize_t n;
-		
-	// 	while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
-	// 		cgi_output.append(buffer, n);
-	// 	close(pipe_child[0]);
-		
-	// 	send(this->_fd, cgi_output.c_str(), cgi_output.size(), 0);
-	// 	close(this->_fd);
-	// }
-}
-/*
-REQUEST_METHOD=POST
-CONTENT_LENGTH=30
-CONTENT_TYPE=application/x-www-form-urlencoded
-SCRIPT_NAME=/cgi-bin/login.py
-SCRIPT_FILEPATH=/full/path/to/login.py
-SERVER_PROTOCOL=HTTP/1.1
-*/
 bool			Connection::fileExistsAndReadable(const char* path, int mode) {
 
 	if (path == NULL)
@@ -448,15 +351,6 @@ void Connection::printParserHeader(void) {
 	std::cout << "\033[32m--------------------------------\033[0m" << std::endl;
 }
 
-void Connection::printParserBody(void) {
-	
-	std::cout << "\033[33m -----------[BODY]-----------\033[0m" << std::endl << std::endl;
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = this->_x_www_form_urlencoded.begin(); it != this->_x_www_form_urlencoded.end(); ++it) {
-		std::cout << "\033[33m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
-	}
-	std::cout << "\033[33m--------------------------------\033[0m" << std::endl;
-}
 
 bool		Connection::sendError(size_t error_code) {
 
@@ -511,8 +405,9 @@ void			Connection::setHeader(std::string index,std::string value) {this->_header
 
 void			Connection::setFullPath(const std::string& full_path) {this->_full_path = full_path;}
 
+size_t			Connection::getPostBodySize() {return (this->_post_body.size());}
 
-
+std::string		Connection::getPostBody() {return (this->_post_body);}
 
 void			Connection::sendAutoResponse(const std::string &direction_path) {SendResponse::sendAutoResponse(getFd(), *this, direction_path); }
 		
@@ -521,6 +416,8 @@ void			Connection::sendDeleteResponse() {SendResponse::sendDeleteResponse(getFd(
 void			Connection::sendGetResponse() {SendResponse::sendGetResponse(getFd(), *this); }
 
 void			Connection::sendPostResponse() {SendResponse::sendPostResponse(getFd(), *this, _previous_full_path); }
+
+void			Connection::sendCgiResponse() {SendResponse::sendCgiResponse(getFd(), *this); }
 
 void			Connection::send200Response() { SendResponse::send200(getFd(), *this); }
 

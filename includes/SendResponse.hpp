@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ErrorResponse.hpp                                  :+:      :+:    :+:   */
+/*   SendResponse.hpp                                   :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/19 13:32:55 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/23 13:43:52 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/24 15:20:24 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -30,6 +30,7 @@ class SendResponse {
 		static void	sendPostResponse(int fd, Connection& _connection, std::string _previous_full_path);
 		static void	sendDeleteResponse(int fd, Connection& _connection);
 		static void	sendAutoResponse(int fd, Connection& _connection, const std::string &direction_path);
+		static void	sendCgiResponse(int fd, Connection& _connection);
 		static void send200(int fd, Connection& _connection) { sendErr(fd, _connection, 200, "200 OK"); }
 		static void send201(int fd, Connection& _connection) { sendErr(fd, _connection, 201, "201 Created"); }
 		static void send204(int fd, Connection& _connection) { sendErr(fd, _connection, 204, "204 No Content"); }

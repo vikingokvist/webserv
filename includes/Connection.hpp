@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/24 13:55:20 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/24 15:28:37 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,8 +35,6 @@ class Connection {
 		char								_request[BUFFER_SIZE];
 		std::map<std::string, std::string>	_headers;
 		std::vector<Part>					 parts;
-		std::map<std::string, std::string>  _x_www_form_urlencoded;
-		std::map<std::string, std::string>  _json;
 		std::ifstream						_file;
 		std::string							_full_path;
 		ServerWrapper&						_server;
@@ -57,7 +55,6 @@ class Connection {
 		bool								saveRequest();
 		
 		
-		void								handleCgiRequest();
 		void								setBestMatch(ssize_t _best_match);	
 		void								setFd(int _fd);
 		void								setHeader(std::string index, std::string path);
@@ -68,22 +65,24 @@ class Connection {
 		std::string							getHeader(std::string index);
 		std::ifstream&						getFile();
 		ServerWrapper&						getServer();
+		size_t								getPostBodySize();
+		std::string							getPostBody();
+
+
 		bool								checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match);
 		ssize_t								getBestMatch();
 		ssize_t								findBestMatch(ServerWrapper& server, std::string req_path);
 		bool								isCgiScript();
 		bool								isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method);		
 		bool								fileExistsAndReadable(const char* path, int mode);
-		
-		
 		void								printParserHeader(void);
-		void								printParserBody(void);
 
 		
 		void								sendGetResponse();
 		void								sendPostResponse();
 		void								sendDeleteResponse();
 		void								sendAutoResponse(const std::string &direction_path);
+		void								sendCgiResponse();
 		bool								sendError(size_t error_code);
 		void								send200Response();
 		void								send201Response();

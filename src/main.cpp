@@ -81,8 +81,8 @@ int main(int argc, char **argv)
 						if (_connection.prepareRequest()) {
 
 							if (_connection.isCgiScript())
-								_connection.handleCgiRequest();
-							if (_connection.getHeader("Method") == "GET")
+								_connection.sendCgiResponse();
+							else if (_connection.getHeader("Method") == "GET")
 								_connection.sendGetResponse();
 							else if (_connection.getHeader("Method") == "POST")
 								_connection.sendPostResponse();
