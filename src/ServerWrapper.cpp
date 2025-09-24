@@ -158,7 +158,7 @@ std::string             ServerWrapper::getLocationPath(size_t loc_index) const {
 
 std::string             ServerWrapper::getLocationRoot(size_t loc_index) const {
 
-    if (!config || loc_index >= config->locations.size()) return ("");
+    if (!config || loc_index >= config->locations.size() || config->locations[loc_index].root.empty()) return ("");
     return (config->locations[loc_index].root);
 }
 

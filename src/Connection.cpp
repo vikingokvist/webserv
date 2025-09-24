@@ -6,13 +6,17 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/23 13:46:36 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/24 13:54:00 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "../includes/Connection.hpp"
 
-Connection::Connection(ServerWrapper& _server) : _server(_server) {this->_fd = this->_server.getFD();}
+Connection::Connection(ServerWrapper& _server) : _server(_server) {
+	
+	this->_fd = this->_server.getFD();
+	this->_is_cgi_script = false;
+}
 
 Connection::~Connection() {}
 
@@ -66,7 +70,6 @@ bool	Connection::recieveRequest() {
 	}
 	
 	std::cout << "Total received: " << _request_complete.size() << " bytes\n";
-	std::cout << this->_request_complete << std::endl;
 	return (true);
 }
 
@@ -77,12 +80,11 @@ bool			Connection::saveRequest() {
 	size_t				header_end = request.find("\r\n\r\n");
 	std::istringstream	iss(request);
 	std::string			line;
-	std::string			post_body;
 
 
 	if (header_end == std::string::npos)
 		return (sendError(400));
-	post_body = request.substr(header_end + 4);
+	this->_post_body = request.substr(header_end + 4);
 	request   = request.substr(0, header_end);
 	
 	if (!std::getline(iss, line) || line.empty())
@@ -111,15 +113,14 @@ bool			Connection::saveRequest() {
 		std::string value		 = line.substr(colon_pos + 1);
 		size_t		boundary_pos = line.find("boundary=");
 		
+		
 		if (boundary_pos == std::string::npos) {
-			
 			removeSpaces(key, value);
 			if (this->_headers.find(key) != this->_headers.end() || !isValidHeaderName(key) || !isValidHeaderValue(value))
 				return (sendError(400));
 			this->_headers[key] = value;
 		}
 		else {
-			
   			size_t semicolon_pos       = line.find(';', colon_pos);
 			std::string content_type   = line.substr(colon_pos + 1, semicolon_pos - (colon_pos + 1));
 			std::string boundary_value = line.substr(boundary_pos + 9);
@@ -132,92 +133,16 @@ bool			Connection::saveRequest() {
 			this->_headers["Boundary"] = boundary_value;
 		}
 	}
-	printParserHeader();
-	if (!post_body.empty())
-		return (savePostBodyFile(post_body));
+	if (this->_headers["Content-Type"] == "application/json")
+		std::cout << "Not implemented yet" << std::endl;
+	else if (this->_headers["Content-Type"] == "application/x-www-form-urlencoded") {
+		this->_x_www_form_urlencoded = parseUrlEncoded(this->_post_body);
+		printParserBody();
+	}
+	else if (this->_headers["Content-Type"] == "multipart/form-data")
+		this->parts = parseMultipart(this->_post_body, this->_headers["Boundary"]);
 	return (true);
 }
-
-std::vector<Part> parseMultipart(const std::string& body, const std::string& boundary) {
-	
-	std::vector<Part> parts;
-	std::string delimiter = "--" + boundary;
-	std::string endDelimiter = delimiter + "--";
-
-	size_t start = 0;
-	while (true) {
-		size_t pos = body.find(delimiter, start);
-		if (pos == std::string::npos) break;
-		pos += delimiter.size();
-
-		// Saltar CRLF
-		if (body.substr(pos, 2) == "\r\n") pos += 2;
-
-		// Si encontramos el delimitador final
-		if (body.compare(pos, endDelimiter.size(), endDelimiter) == 0)
-			break;
-
-		// Buscar fin de headers
-		size_t headerEnd = body.find("\r\n\r\n", pos);
-		if (headerEnd == std::string::npos)
-			break;
-
-			
-		std::string headers = body.substr(pos, headerEnd - pos);
-
-		// Extraer Content-Type
-		std::string content_type;
-		size_t ct_pos = headers.find("Content-Type:");
-		if (ct_pos != std::string::npos) {
-			ct_pos += 14; // salto "Content-Type:"
-			size_t ct_end = headers.find("\r\n", ct_pos);
-			if (ct_end == std::string::npos) ct_end = headers.size();
-				content_type = headers.substr(ct_pos, ct_end - ct_pos);
-
-		}
-		pos = headerEnd + 4; // saltar \r\n\r\n
-
-		// Buscar siguiente boundary
-		size_t next = body.find(delimiter, pos);
-		if (next == std::string::npos) break;
-
-		std::string content = body.substr(pos, next - pos);
-		// Eliminar CRLF final del contenido si existe
-		if (!content.empty() && content.substr(content.size()-2) == "\r\n") {
-			content.erase(content.size()-2);
-		}
-		
-		std::string filename;
-		size_t find_filename = headers.find("filename=");
-		if (find_filename != std::string::npos) {
-			size_t startQuote = headers.find('"', find_filename);
-			if (startQuote != std::string::npos) {
-				++startQuote;
-				size_t endQuote = headers.find('"', startQuote);
-				if (endQuote != std::string::npos) {
-					filename = headers.substr(startQuote, endQuote - startQuote);
-				}
-			}
-		}
-		Part p;
-		p.headers = headers;
-		p.content = content;
-		p.filename = filename;
-		p.content_type = content_type;
-		parts.push_back(p);
-		start = next;
-	}
-	return (parts);
-}
-
-bool	Connection::savePostBodyFile(std::string post_body) {
-	
-	if (!this->_headers["Boundary"].empty()) {
-		this->parts = parseMultipart(post_body, this->_headers["Boundary"]);
-	}
-	return (true);
-}
-
 
 bool			Connection::prepareRequest() {
 	
@@ -229,15 +154,16 @@ bool			Connection::prepareRequest() {
 	std::string				 root;
 	std::string				 relative_path;
 	
-	if (best_match == -1)
+	if (best_match == -1) 
 		return (sendError(404));
-
+		
 	_location = server.getLocation(best_match);
 	setBestMatch(best_match);
 	
 	root = _location.root.empty() ? server.getDefaultRoot() : _location.root;
 	index_files = _location.indices.empty() ? server.getDefaultIndices() : server.getLocationIndices(best_match);
 	
+	this->_headers["Root"] = root;
 	if (req_path == server.getLocationPath(getBestMatch()) || req_path == server.getLocationPath(getBestMatch()) + "/") {
 		if (index_files.size() != 0) {
 			_previous_full_path = this->_headers["Path"];
@@ -259,9 +185,201 @@ bool			Connection::prepareRequest() {
 			relative_path.erase(0, 1);
 		this->_full_path = root + relative_path;
 	}
+	printParserHeader();
 	return (checkRequest(server, root, best_match));
 }
 
+
+
+bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match) {
+
+ 	if (this->_headers["Method"].empty() || this->_headers["Path"].empty() || this->_headers["Version"].empty() || this->_headers["Host"].empty())
+		return (sendError(400));
+	if (!this->_headers["Method"].empty() && (this->_headers["Method"] != "GET" && this->_headers["Method"] != "POST" && this->_headers["Method"] != "DELETE"))
+		return (sendError(501));
+	if (this->_headers["Path"].size() >= MAX_URI_SIZE)
+		return (sendError(414));
+	if (this->_headers["Path"].find("../") != std::string::npos)
+		return (sendError(403));
+	if (!isValidHttpVersion(this->_headers["Version"]))
+		return (sendError(505));
+	if (!this->_headers["Content-Length"].empty() && !isNumber(this->_headers["Content-Length"]))
+		return (sendError(400));
+	if (this->_headers["Method"] == "POST" && this->_headers["Content-Length"].empty())
+		return (sendError(411));
+	if (checkContentLength(this->_headers["Content-Length"].c_str(), server.getMaxClientSize()) == -1)
+		return (sendError(413));
+	if (this->_headers["Method"] == "POST" && this->_headers["Content-Type"].empty())
+		return (sendError(415));
+	if (this->_headers["Method"] == "GET") {
+
+		if (!isMethodAllowed(server, best_match, this->_headers["Method"]))
+			return (sendError(405));
+		if (isDirectory(root.c_str())) {
+
+			if (this->_full_path.empty() && server.getAutoIndex(best_match) == true)
+				return (sendAutoResponse(root), true);
+			else if (this->_full_path.empty() && server.getAutoIndex(best_match) == false)
+				return (sendError(404));
+			if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
+				return (false);
+			this->_file.open(this->_full_path.c_str());
+			if (!this->_file)
+				return (sendError(404)); 
+			return (true);
+		}
+		if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
+			return (false);
+		this->_file.open(this->_full_path.c_str());
+		if (!this->_file) 
+			return (sendError(404));
+	}
+	else if (!this->_headers["Boundary"].empty() && this->_headers["Method"] == "POST") {
+		
+		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
+			return (sendError(405));
+		
+		for (size_t i = 0; i < this-> parts.size(); ++i) {
+			std::string full_path = root + this->parts[i].filename;
+			std::ofstream file_post(full_path.c_str());
+			if (!file_post)
+				return (std::cerr << ERROR_CREATE_FILE << full_path << std::endl, false);
+			file_post.write(parts[i].content.data(), parts[i].content.size());
+			file_post.close();
+		}
+	}
+	else if (this->_headers["Method"] == "POST") {
+		
+		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
+			return (sendError(405));
+		size_t	extension_pos = this->_headers["Path"].find('.');
+		if (extension_pos != std::string::npos) {
+		
+			std::string file_extension = this->_headers["Path"].substr(extension_pos);
+			for (size_t i = 0; i < server.getCgiExtensionCount(best_match); i++)
+				if (file_extension == server.getCgiExtensions(best_match, i))
+					this->_is_cgi_script = true;
+		}
+	}
+	else if (this->_headers["Method"] == "DELETE") {
+
+		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
+			return (sendError(405));
+		// Intento de Path transversal
+		// Intento de eliminar archivos para atras o archivos importantes como .conf
+		if (this->_full_path.find("%2e%2e") != std::string::npos) {
+				return (sendError(403));
+		}
+
+		// Si existe o no 
+		if (!fileExistsAndReadable(this->_full_path.c_str(), 0)) {
+			return (sendError(404));
+		}
+
+		// Eliminar
+		if (remove(this->_full_path.c_str()) != 0) {
+        	return (sendError(403));
+		}
+	}
+	return (true);
+}
+
+void			Connection::handleCgiRequest() {
+	
+	// int		pipe_parent[2];
+	// int		pipe_child[2];
+	// pid_t	pid;
+	
+	
+	// if (pipe(pipe_parent) == -1) {
+	// 	std::cerr << "Parent pipe() failed: " << strerror(errno) << std::endl;
+    // 	sendError(500); return ;
+	// }
+	// if (pipe(pipe_child) == -1) {
+	// 	std::cerr << "Child pipe() failed: " << strerror(errno) << std::endl;
+    // 	sendError(500); return ;
+	// }
+	// pid = fork();
+	// if (pid < 0) {
+	// 	std::cerr << "fork() failed: " << strerror(errno) << std::endl;
+    // 	sendError(500); return ;
+	// }
+	// else if (pid == 0) {
+		
+	// 	if (dup2(pipe_parent[0], STDIN_FILENO) == -1) {
+	// 		std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
+	// 		sendError(500); exit(1);
+	// 	}
+	// 	if (dup2(pipe_child[1], STDOUT_FILENO) == -1) {
+	// 		std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
+	// 		sendError(500); exit(1);
+	// 	}
+	// 	close(pipe_parent[1]);
+	// 	close(pipe_child[0]);
+		
+	// 	std::string script_name;
+	// 	std::string script_file_path;
+	// 	size_t script_name_pos = this->_headers["Path"].rfind('/');
+	// 	if (script_name_pos != std::string::npos) {
+	// 		script_name = this->_headers["Path"].substr(script_name_pos + 1);
+	// 		script_file_path = this->_headers["Root"] + script_name;
+	// 	}
+		
+	// 	if (access(script_file_path.c_str(), R_OK) != 0) {
+	// 		//CHECK IF NEED TO CLOSE
+	// 		std::cerr << "File not executable: " << strerror(errno) << std::endl;
+	// 		sendError(403); exit(1);
+	// 	}
+
+	// 	std::vector<std::string> env_strings;
+	// 	std::vector<char*> envp;
+
+		
+	// 	env_strings.push_back("REQUEST_METHOD=" + this->_headers["Method"]);
+	// 	env_strings.push_back("CONTENT_LENGTH=" + this->_headers["Content-Length"]);
+	// 	env_strings.push_back("CONTENT_TYPE=" + this->_headers["Content-Type"]);
+	// 	env_strings.push_back("SCRIPT_NAME=" + script_name);
+	// 	env_strings.push_back("SCRIPT_FILEPATH=" + script_file_path);
+	// 	env_strings.push_back("SERVER_PROTOCOL=" + this->_headers["Version"]);
+		
+	// 	for (size_t i = 0; i < env_strings.size(); i++)
+	// 		envp.push_back(const_cast<char*>(env_strings[i].c_str()));
+	// 	envp.push_back(NULL);
+
+	// 	char *argv[] = { (char*)script_file_path.c_str(), NULL };
+		
+	// 	if (execve(script_file_path.c_str(), argv, envp.data()) == -1) {
+	// 		std::cerr << "Child execve() failed: " << strerror(errno) << std::endl;
+	// 		sendError(500);exit(1);
+	// 	}
+	// }
+	// else {
+	// 	close(pipe_parent[0]);
+	// 	close(pipe_child[1]);
+
+	// 	write(pipe_parent[1], this->_post_body.c_str(), this->_post_body.size());
+	// 	close(pipe_parent[1]);
+
+	// 	char buffer[4096];
+	// 	std::string cgi_output;
+	// 	ssize_t n;
+		
+	// 	while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
+	// 		cgi_output.append(buffer, n);
+	// 	close(pipe_child[0]);
+		
+	// 	send(this->_fd, cgi_output.c_str(), cgi_output.size(), 0);
+	// 	close(this->_fd);
+	// }
+}
+/*
+REQUEST_METHOD=POST
+CONTENT_LENGTH=30
+CONTENT_TYPE=application/x-www-form-urlencoded
+SCRIPT_NAME=/cgi-bin/login.py
+SCRIPT_FILEPATH=/full/path/to/login.py
+SERVER_PROTOCOL=HTTP/1.1
+*/
 bool			Connection::fileExistsAndReadable(const char* path, int mode) {
 
 	if (path == NULL)
@@ -289,85 +407,56 @@ bool			Connection::fileExistsAndReadable(const char* path, int mode) {
 	return (true);
 }
 
-bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match) {
 
- 	if (this->_headers["Method"].empty() || this->_headers["Path"].empty() || this->_headers["Version"].empty() || this->_headers["Host"].empty())
-		return (sendError(400));
-	if (!this->_headers["Method"].empty() && (this->_headers["Method"] != "GET" && this->_headers["Method"] != "POST" && this->_headers["Method"] != "DELETE"))
-		return (sendError(501));
-	if (this->_headers["Path"].size() >= MAX_URI_SIZE)
-		return (sendError(414));
-	if (this->_headers["Path"].find("../") != std::string::npos)
-		return (sendError(403));
-	if (!isValidHttpVersion(_headers["Version"]))
-		return (sendError(505));
-	if (!this->_headers["Content-Length"].empty() && !isNumber(this->_headers["Content-Length"]))
-		return (sendError(400));
-	if (this->_headers["Method"] == "POST" && this->_headers["Content-Length"].empty())
-		return (sendError(411));
-	if (checkContentLength(this->_headers["Content-Length"].c_str(), server.getMaxClientSize()) == -1)
-		return (sendError(413));
-	if (this->_headers["Method"] == "POST" && (this->_headers["Content-Type"].empty() || this->_headers["Content-Type"] != "multipart/form-data"))
-		return (sendError(415));
-	if (this->_headers["Method"] == "GET") {
-
-		if (!isMethodAllowed(server, best_match, this->_headers["Method"]))
-			return (sendError(405));
-		if (isDirectory(root.c_str())) {
-
-			if (this->_full_path.empty() && server.getAutoIndex(best_match) == true)
-				return (sendAutoResponse(root), true);
-			else if (this->_full_path.empty() && server.getAutoIndex(best_match) == false)
-				return (sendError(404));
-			if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
-				return (false);
-			_file.open(this->_full_path.c_str());
-			if (!_file)
-				return (sendError(404)); 
+bool	Connection::isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method) {
+	
+	if (server.getMethods(best_match).empty())
+		return (true);
+	for (size_t j = 0; j < server.getMethodsSize(best_match); j++) {
+		
+		if (method == server.getMethod(best_match, j))
 			return (true);
-		}
-		if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
-			return (false);
-		_file.open(this->_full_path.c_str());
-		if (!_file) 
-			return (sendError(404));	
 	}
-	else if (this->_headers["Method"] == "POST") {
-		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
-			return (sendError(405));
-		for (size_t i = 0; i < this-> parts.size(); ++i) {
-			std::string full_path = root + this->parts[i].filename;
-			std::ofstream file_post(full_path.c_str());
-			
-			if (!file_post)
-				return (std::cerr << ERROR_CREATE_FILE << full_path << std::endl, false);
-			file_post.write(parts[i].content.data(), parts[i].content.size());
-			file_post.close();
-		}
-	}
-	else if (this->_headers["Method"] == "DELETE") {
-
-		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
-			return (sendError(405));
-		// Intento de Path transversal
-		// Intento de eliminar archivos para atras o archivos importantes como .conf
-		if (this->_full_path.find("%2e%2e") != std::string::npos) {
-				return (sendError(403));
-		}
-
-		// Si existe o no 
-		if (!fileExistsAndReadable(this->_full_path.c_str(), 0)) {
-			return (sendError(404));
-		}
-
-		// Eliminar
-		if (remove(this->_full_path.c_str()) != 0) {
-        	return (sendError(403));
-		}
-	}
-	return (true);
+	return (false);
 }
 
+ssize_t			Connection::findBestMatch(ServerWrapper& server, std::string req_path) {
+	
+	size_t max_match_len = 0;
+	ssize_t best_match = -1;
+
+	for (size_t j = 0; j < server.getLocations().size(); j++) {	
+		
+		const std::string& loc_path = server.getLocationPath(j);
+		if (req_path.rfind(loc_path, 0) == 0 && loc_path.size() > max_match_len) {
+			
+			max_match_len = loc_path.size();
+			best_match = j;
+		}
+	}
+	return (best_match);
+}
+
+
+void Connection::printParserHeader(void) {
+	
+	std::cout << "\033[32m -----------[REQUEST]-----------\033[0m" << std::endl << std::endl;
+	std::map<std::string, std::string>::const_iterator it;
+	for (it = this->_headers.begin(); it != this->_headers.end(); ++it) {
+		std::cout << "\033[32m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
+	}
+	std::cout << "\033[32m--------------------------------\033[0m" << std::endl;
+}
+
+void Connection::printParserBody(void) {
+	
+	std::cout << "\033[33m -----------[BODY]-----------\033[0m" << std::endl << std::endl;
+	std::map<std::string, std::string>::const_iterator it;
+	for (it = this->_x_www_form_urlencoded.begin(); it != this->_x_www_form_urlencoded.end(); ++it) {
+		std::cout << "\033[33m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
+	}
+	std::cout << "\033[33m--------------------------------\033[0m" << std::endl;
+}
 
 bool		Connection::sendError(size_t error_code) {
 
@@ -398,58 +487,7 @@ bool		Connection::sendError(size_t error_code) {
 	return (false);
 }
 
-
-bool	Connection::isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method) {
-	
-	if (server.getMethods(best_match).empty()) // if no METHODS declared, then any method is allowed
-		return (true);
-	for (size_t j = 0; j < server.getMethodsSize(best_match); j++) {
-		
-		if (method == server.getMethod(best_match, j))
-			return (true);
-	}
-	return (false);
-}
-
-ssize_t			Connection::findBestMatch(ServerWrapper& server, std::string req_path) {
-	
-	size_t max_match_len = 0;
-	ssize_t best_match = -1;
-
-	for (size_t j = 0; j < server.getLocations().size(); j++) {	
-		
-		const std::string& loc_path = server.getLocationPath(j);
-		if (req_path.rfind(loc_path, 0) == 0 && loc_path.size() > max_match_len) {
-			
-			max_match_len = loc_path.size();
-			best_match = j;
-		}
-	}
-	return (best_match);
-}
-
-
-
-void		Connection::removeSpaces(std::string& str1, std::string& str2) {
-
-	while (!str1.empty() && isspace(str1[str1.size() - 1]))
-		str1.erase(str1.size() - 1);
-
-	while (!str2.empty() && isspace(str2[0]))
-		str2.erase(0, 1);
-
-}
-
-void Connection::printParserHeader(void) {
-	
-	std::cout << "\033[32m -----------[REQUEST]-----------\033[0m" << std::endl << std::endl;
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = this->_headers.begin(); it != this->_headers.end(); ++it) {
-		std::cout << "\033[32m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
-	}
-	std::cout << "\033[32m--------------------------------\033[0m" << std::endl;
-}
-
+bool 			Connection::isCgiScript() {return (this->_is_cgi_script);}
 
 ssize_t			Connection::getBestMatch() {return (_best_match);}
 
@@ -472,6 +510,8 @@ void			Connection::setFd(int fd) {this->_fd = fd;}
 void			Connection::setHeader(std::string index,std::string value) {this->_headers[index] = value;}
 
 void			Connection::setFullPath(const std::string& full_path) {this->_full_path = full_path;}
+
+
 
 
 void			Connection::sendAutoResponse(const std::string &direction_path) {SendResponse::sendAutoResponse(getFd(), *this, direction_path); }

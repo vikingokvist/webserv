@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/23 13:44:46 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/24 13:55:20 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,13 +28,6 @@
 class ServerWrapper;
 extern std::string							_previous_full_path;
 
-struct Part {
-    std::string headers;
-    std::string content;
-    std::string filename;
-	std::string	content_type;
-};
-
 class Connection {
 	
 	private:
@@ -42,11 +35,15 @@ class Connection {
 		char								_request[BUFFER_SIZE];
 		std::map<std::string, std::string>	_headers;
 		std::vector<Part>					 parts;
+		std::map<std::string, std::string>  _x_www_form_urlencoded;
+		std::map<std::string, std::string>  _json;
 		std::ifstream						_file;
 		std::string							_full_path;
 		ServerWrapper&						_server;
 		ssize_t								_best_match;
 		std::string							_request_complete;
+		std::string							_post_body;
+		bool								_is_cgi_script;
 
 		typedef void						(Connection::*Handler)();
 		
@@ -58,10 +55,9 @@ class Connection {
 		bool								prepareRequest();
 		bool								recieveRequest();
 		bool								saveRequest();
-
 		
-		bool								savePostBodyFile(std::string post_body);
-		void								printParserHeader(void);
+		
+		void								handleCgiRequest();
 		void								setBestMatch(ssize_t _best_match);	
 		void								setFd(int _fd);
 		void								setHeader(std::string index, std::string path);
@@ -75,11 +71,15 @@ class Connection {
 		bool								checkRequest(ServerWrapper&	server, std::string root, ssize_t best_match);
 		ssize_t								getBestMatch();
 		ssize_t								findBestMatch(ServerWrapper& server, std::string req_path);
+		bool								isCgiScript();
 		bool								isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method);		
 		bool								fileExistsAndReadable(const char* path, int mode);
-		void								removeSpaces(std::string& str1, std::string& str2);
 		
+		
+		void								printParserHeader(void);
+		void								printParserBody(void);
 
+		
 		void								sendGetResponse();
 		void								sendPostResponse();
 		void								sendDeleteResponse();
@@ -105,9 +105,6 @@ class Connection {
 		void								send503Response();
 		void								send504Response();
 		void								send505Response();
-
-
-		
 		
 };
 

@@ -61,12 +61,37 @@ struct ServerConfig
     std::vector<LocationConfig>                             locations;
 };
 
+struct Part {
+    std::string headers;
+    std::string content;
+    std::string filename;
+	std::string	content_type;
+};
 
-bool			isDirectory(const char* path);
-bool			isValidHttpVersion(const std::string& version);
-bool            isNumber(const std::string &s);
-int             checkContentLength(const char *num_str, unsigned long max_size);
-bool            isValidHeaderName(std::string header_name);
-bool            isValidHeaderValue(std::string header_value);
+struct Endpoint {
+    std::string ip;
+    uint16_t    port;
+
+    Endpoint() {}
+    Endpoint(const std::string &i, uint16_t p) : ip(i), port(p) {}
+};
+
+struct PollData {
+    int fd;
+    size_t server_index;
+
+    PollData() {}
+    PollData(int _fd, int _i) : fd(_fd), server_index(_i) {}
+};
+
+std::map<std::string, std::string>	parseUrlEncoded(const std::string& body);
+std::vector<Part>                   parseMultipart(const std::string& body, const std::string& boundary);
+void		                        removeSpaces(std::string& str1, std::string& str2);
+bool			                    isDirectory(const char* path);
+bool			                    isValidHttpVersion(const std::string& version);
+bool                                isNumber(const std::string &s);
+int                                 checkContentLength(const char *num_str, unsigned long max_size);
+bool                                isValidHeaderName(std::string header_name);
+bool                                isValidHeaderValue(std::string header_value);
 
 #endif

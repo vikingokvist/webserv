@@ -5,22 +5,6 @@
 #include "./webserv.hpp"
 
 
-struct Endpoint {
-    std::string ip;
-    uint16_t    port;
-
-    Endpoint() {}
-    Endpoint(const std::string &i, uint16_t p) : ip(i), port(p) {}
-};
-
-struct PollData {
-    int fd;
-    size_t server_index;
-
-    PollData() {}
-    PollData(int _fd, int _i) : fd(_fd), server_index(_i) {}
-};
-
 class ServerWrapper
 {
     private:
