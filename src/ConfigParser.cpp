@@ -234,17 +234,21 @@ void     ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
     unsigned long multiplier = 1;
     std::string number_part = vars.token;
 
-    if (c == 'K' || c == 'k') {
+    if ((c == 'K' || c == 'k') && isdigit(vars.token[len - 2])) {
         multiplier = 1024ULL;
         number_part = vars.token.substr(0, len - 1);
     }
-    else if (c == 'M' || c == 'm') {
+    else if ((c == 'M' || c == 'm') && isdigit(vars.token[len - 2])) {
         multiplier = 1024ULL * 1024ULL;
         number_part = vars.token.substr(0, len - 1);
     }
-    else if (c == 'G' || c == 'g') {
+    else if ((c == 'G' || c == 'g') && isdigit(vars.token[len - 2])) {
         multiplier = 1024ULL * 1024ULL * 1024ULL;
         number_part = vars.token.substr(0, len - 1);
+    }
+    else {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (UnknownVariableValueException());
     }
     vars.cur_server.client_max_body_size = str_to_unsigned_long(number_part) * multiplier;
 }
@@ -488,6 +492,10 @@ void    ConfigParser::autoIndexToken(ParserVariables& vars) {
                 vars.cur_loc.auto_index = true;
             else if (vars.token == "off")
                 vars.cur_loc.auto_index = false;
+            else {
+                std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+                throw (UnknownVariableValueException());
+            }
             return ;
         }
         std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
@@ -732,7 +740,7 @@ const char* ConfigParser::ExtraVariablesException::what() const throw() {
 
 const char* ConfigParser::UnknownVariableValueException::what() const throw() {
 
-    return ("\033[1;31m Extra variables not supported.\033[0m");
+    return ("\033[1;31m Unknown variable value.\033[0m");
 }
 
 const char* ConfigParser::MissingClosingBracketException::what() const throw() {

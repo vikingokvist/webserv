@@ -9,3 +9,15 @@ TODO limits
 
 - Checkar que todo tire errores correctos a std::cerr
 
+CONFIG file
+
+- CHeck for errors if location missing path name
+
+- variable space semicolon doesnt throw error (methods ;)
+
+ - Multiple variables inside location should throw error
+
+ - in the same server, even though having multiple listen directives is allowed, if on the same port, should throw error
+  (different servers with same port are allowed)
+
+- 
