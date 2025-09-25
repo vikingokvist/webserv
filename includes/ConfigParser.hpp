@@ -28,19 +28,19 @@ class ConfigParser
         void                        parseFile(const std::string& filename, ParserVariables& vars);
         void                        parseConfigFile(ParserVariables& vars);
         void                        handleBracketStack(ParserVariables& vars);
-        int                         listenToken(ParserVariables& vars);
-        int                         serverNameToken(ParserVariables& vars);
-        int                         clientMaxBodySizeToken(ParserVariables& vars);
-        int                         errorPageToken(ParserVariables& vars);
-        int                         uploadStoreToken(ParserVariables& vars);
-        int                         cgiExtensionToken(ParserVariables& vars);
-        int                         redirectToken(ParserVariables& vars);
-        int                         autoIndexToken(ParserVariables& vars);
-        int                         methodsToken(ParserVariables& vars);
-        int                         indexToken(ParserVariables& vars);
-        int                         rootToken(ParserVariables& vars);
-        int                         defaultServerRoot(ParserVariables& vars);
-        int                         defaultServerIndex(ParserVariables& vars);
+        void                         listenToken(ParserVariables& vars);
+        void                         serverNameToken(ParserVariables& vars);
+        void                         clientMaxBodySizeToken(ParserVariables& vars);
+        void                         errorPageToken(ParserVariables& vars);
+        void                         uploadStoreToken(ParserVariables& vars);
+        void                         cgiExtensionToken(ParserVariables& vars);
+        void                         redirectToken(ParserVariables& vars);
+        void                         autoIndexToken(ParserVariables& vars);
+        void                         methodsToken(ParserVariables& vars);
+        void                         indexToken(ParserVariables& vars);
+        void                         rootToken(ParserVariables& vars);
+        void                         defaultServerRoot(ParserVariables& vars);
+        void                         defaultServerIndex(ParserVariables& vars);
         void                        printParsedConfig(const std::vector<ServerConfig>& servers);
         bool                        isMisconfiguredLocation(ParserVariables& vars);
         bool                        isMisconfiguredServer(ParserVariables& vars);
@@ -56,7 +56,17 @@ class ConfigParser
         const std::vector<ServerConfig>& getServers() const;
         class MisconfigurationException: public std::exception {public: const char* what() const throw();};
         class FileOpenErrorException: public std::exception {public: const char* what() const throw();};
+        class MissingValueException: public std::exception {public: const char* what() const throw();};
+        class UnknownVariableException: public std::exception {public: const char* what() const throw();};
+        class MissingClosingBracketException: public std::exception {public: const char* what() const throw();};
+        class MissingClosingSemicolonException: public std::exception {public: const char* what() const throw();};
+        class MissingPortException: public std::exception {public: const char* what() const throw();};
+        class ErrorCodeMisconfiguration: public std::exception {public: const char* what() const throw();};
+        class MissingErrorCodePage: public std::exception {public: const char* what() const throw();};
+        class ExtraVariablesException: public std::exception {public: const char* what() const throw();};
+        class UnknownVariableValueException: public std::exception {public: const char* what() const throw();};
 
 };
+
 
 #endif

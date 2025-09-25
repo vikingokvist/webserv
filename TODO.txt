@@ -6,7 +6,6 @@ TODO limits
 
 - check in request if non-ascii characters
 
-- Implementar CGI 
 
 - Checkar que todo tire errores correctos a std::cerr
 

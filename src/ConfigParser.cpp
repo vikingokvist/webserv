@@ -49,54 +49,50 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
     vars.cur_server_index = -1;
     vars.in_location = false;
     vars.in_server = false;
-    int error_server = 0;
-    int error_loc = 0;
     for (vars.it = vars.config_array.begin(); vars.it != vars.config_array.end() ; ++vars.it) {
 
         vars.token = *vars.it;
         handleBracketStack(vars);
-        if (vars.in_location == true && (error_loc == 1 || isMisconfiguredLocation(vars))) {
-            std::cout << "[location " << vars.cur_loc.path << "] => \"" << vars.token << "\"" << " <= ";
-            throw (MisconfigurationException());
-        }
-        else if (vars.in_server == true  && vars.in_location == false && (error_server == 1 || isMisconfiguredServer(vars))) {
-            std::cout << "[server] => " << "\"" << vars.token << "\"" << " <= ";
-            throw (MisconfigurationException());
-        }
-        error_server = 0;
-        error_loc = 0;
         if (vars.in_server == true  && vars.in_location == false) {
 
-            if (vars.token == "listen")
-                error_server = listenToken(vars);
-            else if (vars.token == "server_name")
-                error_server = serverNameToken(vars);
-            else if (vars.token == "client_max_body_size")
-                error_server = clientMaxBodySizeToken(vars);
-            else if (vars.token == "error_page")
-                error_server = errorPageToken(vars);
-            else if (vars.token == "root")
-                error_server = defaultServerRoot(vars);
-            else if (vars.token == "index")
-                error_server = defaultServerIndex(vars);
+            if (!isMisconfiguredServer(vars)) {
+                std::cout << "[server] => " << "\"" << vars.token << "\"" << " <= ";
+                throw (UnknownVariableException());
+            }
+            else if (vars.token.find("listen") != std::string::npos)
+                listenToken(vars);
+            else if (vars.token.find("server_name") != std::string::npos)
+                serverNameToken(vars);
+            else if (vars.token.find("client_max_body_size") != std::string::npos)
+                clientMaxBodySizeToken(vars);
+            else if (vars.token.find("error_page") != std::string::npos)
+                errorPageToken(vars);
+            else if (vars.token.find("root") != std::string::npos)
+                defaultServerRoot(vars);
+            else if (vars.token.find("index") != std::string::npos && vars.token.find("autoindex") == std::string::npos)
+                defaultServerIndex(vars);
         }
         else if (vars.in_location == true) {
 
-            if (vars.token == "root")
-                error_loc = rootToken(vars);
-            else if (vars.token == "index")
-                error_loc = indexToken(vars);
-            else if (vars.token == "methods")
-                error_loc = methodsToken(vars);
-            else if (vars.token == "autoindex")
-                error_loc = autoIndexToken(vars);
-            else if (vars.token == "return")
-                error_loc = redirectToken(vars);
-            else if (vars.token == "cgi_ext")
-                error_loc = cgiExtensionToken(vars);
-            else if (vars.token == "upload_store")
-                error_loc = uploadStoreToken(vars);
-            
+            if (!isMisconfiguredLocation(vars)) {
+                std::cout << "[location " << vars.cur_loc.path << "] => \"" << vars.token << "\"" << " <= ";
+                throw (UnknownVariableException());
+            }
+            else if (vars.token.find("root") != std::string::npos)
+                rootToken(vars);
+            else if (vars.token.find("index") != std::string::npos && vars.token.find("autoindex") == std::string::npos)
+                indexToken(vars);
+            else if (vars.token.find("methods") != std::string::npos)
+                methodsToken(vars);
+            else if (vars.token.find("autoindex") != std::string::npos)
+                autoIndexToken(vars);
+            else if (vars.token.find("return") != std::string::npos)
+                redirectToken(vars);
+            else if (vars.token.find("cgi_ext") != std::string::npos)
+                cgiExtensionToken(vars);
+            else if (vars.token.find("upload_store") != std::string::npos)
+                uploadStoreToken(vars);
+
         }
         if (vars.token.find("}") != std::string::npos && vars.in_location == true) {
 
@@ -110,12 +106,11 @@ void    ConfigParser::parseConfigFile(ParserVariables& vars) {
         }
     }
     if (vars.in_server == true || vars.in_location == true) {
-        std::cout << "} <= Missing closing bracket " << std::endl;
-        throw (MisconfigurationException());
+        throw (MissingClosingBracketException());
     }
 }
 
-void ConfigParser::handleBracketStack(ParserVariables& vars) {
+void    ConfigParser::handleBracketStack(ParserVariables& vars) {
 
     if (vars.token.find("server") != std::string::npos && vars.token.find("server_name") == std::string::npos) {
 
@@ -149,267 +144,91 @@ void ConfigParser::handleBracketStack(ParserVariables& vars) {
     }
 }
 
-int ConfigParser::defaultServerRoot(ParserVariables& vars) {
+void    ConfigParser::listenToken(ParserVariables& vars) {
 
+    size_t  colon_pos;
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
     vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
         size_t pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
-
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos)
             vars.token.erase(vars.token.size() - 1);
-            vars.cur_server.default_root = vars.token;
+        else {
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingBracketException());   
         }
-        else
-            return (1);
+        colon_pos = vars.token.find(':');
+        if (colon_pos != std::string::npos && vars.token[colon_pos + 1] && isdigit(vars.token[colon_pos + 1]))
+            vars.cur_server.ips_and_ports.push_back(std::make_pair(vars.token.substr(0, colon_pos), std::atoi(vars.token.substr(colon_pos + 1).c_str())));
+        else {
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingPortException());
+        }
     }
-    return (0);
 }
 
-int ConfigParser::defaultServerIndex(ParserVariables& vars) {
+void    ConfigParser::serverNameToken(ParserVariables& vars) {
 
-    int     error = 1;
-
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
     vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
     for (; vars.it != vars.config_array.end(); ++vars.it) {
 
         vars.token = *vars.it;
-        size_t found_semicolon = vars.token.find(';');
-        size_t found_bracket = vars.token.find('}');
-
-        if (!vars.token.empty() && found_bracket != std::string::npos)
-            break ;
-        if (!vars.token.empty() && found_semicolon != std::string::npos) {
-
-            error = 0;
-            std::string temp = vars.token.substr(0, found_semicolon);
-            vars.cur_server.default_indices.push_back(temp);
-            break ;
+        if (isMisconfiguredServer(vars)) {
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());
         }
-        else if (!vars.token.empty() && found_semicolon == std::string::npos) {
-            
-            vars.cur_server.default_indices.push_back(vars.token);
-        }
-    }
-    return (error);
-}
+        if (!vars.token.empty()) {
 
-int    ConfigParser::rootToken(ParserVariables& vars) {
-
-    vars.it++;
-    if (vars.it != vars.config_array.end()) {
-
-        vars.token = *vars.it;
-        size_t pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
-
-            vars.token.erase(vars.token.size() - 1);
-            vars.cur_loc.root = vars.token;
-        }
-        else
-            return (1);
-    }
-    return (0);
-}
-
-int    ConfigParser::indexToken(ParserVariables& vars) {
-
-    int     error = 1;
-
-    vars.it++;
-    for (; vars.it != vars.config_array.end(); ++vars.it) {
-
-        vars.token = *vars.it;
-        size_t found_semicolon = vars.token.find(';');
-        size_t found_bracket = vars.token.find('}');
-
-        if (!vars.token.empty() && found_bracket != std::string::npos)
-            break ;
-        if (!vars.token.empty() && found_semicolon != std::string::npos) {
-
-            error = 0;
-            std::string temp = vars.token.substr(0, found_semicolon);
-            vars.cur_loc.indices.push_back(temp);
-            break ;
-        }
-        else if (!vars.token.empty() && found_semicolon == std::string::npos) {
-            
-            vars.cur_loc.indices.push_back(vars.token);
-        }
-    }
-    return (error);
-}
-
-int    ConfigParser::methodsToken(ParserVariables& vars) {
-
-    int     error = 1;
-    size_t pos;
-
-    vars.it++;
-    for (; vars.it != vars.config_array.end(); ++vars.it) {
-
-        vars.token = *vars.it;
-
-        pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
-            error = 0;
-            vars.token.erase(vars.token.size() - 1);
-        }
-        if (vars.token != "POST" && vars.token != "GET" && vars.token != "DELETE") {
-            error = 1;
-            std::cout << "[location " << vars.cur_loc.path << "] => \"" << vars.token << "\"" << " <= ";
-            throw (MisconfigurationException());
-            break ;
-        }
-        vars.cur_loc.methods.insert(vars.token);
-        if (error == 0)
-            break ;
-    }
-    return (error);
-}
-
-int    ConfigParser::autoIndexToken(ParserVariables& vars) {
-
-    vars.it++;
-    if (vars.it != vars.config_array.end()) {
-
-        vars.token = *vars.it;
-        size_t pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
-
-            vars.token.erase(vars.token.size() - 1);
-            if (vars.token == "on")
-                vars.cur_loc.auto_index = true;
-            else if (vars.token == "off")
-                vars.cur_loc.auto_index = false;
-        }
-        else
-            return (1);
-    }
-    return (0);
-}
-
-int ConfigParser::redirectToken(ParserVariables& vars) {
-
-    ++vars.it;
-    if (vars.it == vars.config_array.end())
-        return (1);
-    vars.token = *vars.it;
-    if (std::isdigit(vars.token[0])) {
-
-        vars.cur_loc.redirect_code = std::atoi(vars.token.c_str());
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';')
-            return (0);
-        ++vars.it;
-        if (vars.it == vars.config_array.end())
-            return (1);
-        vars.token = *vars.it;
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
-            vars.token.erase(vars.token.size() - 1);
-            if (!vars.token.empty())
-                vars.cur_loc.redirect = vars.token;
-            return (0);
-        }
-        vars.token = *(--vars.it);
-        return (1);
-    }
-    vars.cur_loc.redirect_code = 302;
-    if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
-        vars.token.erase(vars.token.size() - 1);
-        vars.cur_loc.redirect = vars.token;
-        return (0);
-    }
-    return (1);
-}
-
-
-int    ConfigParser::cgiExtensionToken(ParserVariables& vars) {
-
-    ++vars.it;
-    if (vars.it == vars.config_array.end())
-        return (1);
-    for (; vars.it != vars.config_array.end(); ++vars.it) {
-
-        vars.token = *vars.it;
-        if (isMisconfiguredLocation(vars) == false) {
-            vars.token = *(--vars.it);
-            return (1);
-        }
-        size_t semicolon_pos = vars.token.find(';');
-        if (semicolon_pos != std::string::npos) {
-            vars.token.erase(vars.token.size() - 1);
-            if (!vars.token.empty())
-                vars.cur_loc.cgi_extensions.insert(vars.token);
-            break ;
-        }
-        vars.cur_loc.cgi_extensions.insert(vars.token);
-    }
-    return (0);
-}
-
-int    ConfigParser::uploadStoreToken(ParserVariables& vars) {
-
-    vars.it++;
-    if (vars.it != vars.config_array.end()) {
-
-        vars.token = *vars.it;
-        size_t pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+            size_t semicolon_pos = vars.token.find(';');
+            if (semicolon_pos != std::string::npos)
                 vars.token.erase(vars.token.size() - 1);
-                vars.cur_loc.upload_store = vars.token;
-                vars.token = *(++vars.it);
-        }
-        else
-            return (1);
-    }
-    return (0);
-}
-
-
-int ConfigParser::errorPageToken(ParserVariables& vars) {
-    
-    int     error_code;
-    size_t  pos;
-
-    vars.it++;
-    if (vars.it != vars.config_array.end()) {
-
-        vars.token = *vars.it;
-        error_code = std::atoi(vars.token.c_str());
-        vars.token = *(++vars.it);
-
-        pos = vars.token.find(';');
-        if (!vars.token.empty() && pos != std::string::npos)
-            vars.token.erase(vars.token.size() - 1);
-        else
-            return (1);
-
-
-        pos = vars.token.find_last_of('/');
-        if (pos != std::string::npos) {
-            std::string root = vars.token.substr(0, pos + 1);
-            std::string file = vars.token.substr(pos + 1);
-            vars.cur_server.error_pages[error_code] = std::make_pair(root, file);
-        } else {
-            vars.cur_server.error_pages[error_code] = std::make_pair("", vars.token);
+            vars.cur_server.server_names.push_back(vars.token);
+            if (semicolon_pos != std::string::npos)
+                break ;
         }
     }
-    return (0);
 }
 
+void     ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
 
-int     ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
-
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
     vars.it++;
-    if (vars.it == vars.config_array.end())
-        return (1);
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException()); 
+    }
     vars.token = *vars.it;
     size_t pos = vars.token.find(';');
     if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos)
         vars.token.erase(vars.token.size() - 1);
-    else
-        return (1);
+    else {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingSemicolonException()); 
+    }
     size_t len = vars.token.size();
     char c = vars.token[len - 1];
     unsigned long multiplier = 1;
@@ -428,50 +247,355 @@ int     ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
         number_part = vars.token.substr(0, len - 1);
     }
     vars.cur_server.client_max_body_size = str_to_unsigned_long(number_part) * multiplier;
-    return (0);
 }
 
+void    ConfigParser::errorPageToken(ParserVariables& vars) {
+    
+    int     error_code;
+    size_t  pos;
 
-int    ConfigParser::serverNameToken(ParserVariables& vars) {
-
-    int error = 1;
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
     vars.it++;
-    for (; vars.it != vars.config_array.end(); ++vars.it) {
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());
+    }
+    if (vars.it != vars.config_array.end()) {
+
         vars.token = *vars.it;
-        if (!vars.token.empty()) {
-            size_t semicolon_pos = vars.token.find(';');
-            if (semicolon_pos != std::string::npos) {
-                error = 0;
-                vars.token.erase(vars.token.size() - 1);
+        for (size_t i = 0; i < vars.token.size(); i++) {
+            if (!isdigit(vars.token[i])) {
+                if (vars.token[i] == ';') {
+                    std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+                    throw (MissingErrorCodePage());
+                }
+                std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+                throw (ErrorCodeMisconfiguration());
             }
-            vars.cur_server.server_names.push_back(vars.token);
-            if (semicolon_pos != std::string::npos)
-                break ;
+        }
+        error_code = std::atoi(vars.token.c_str());
+        vars.it++;
+        if (vars.it == vars.config_array.end() || (*vars.it)[0] == ';') {
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingErrorCodePage());
+        }
+        vars.token = *vars.it;
+        pos = vars.token.find(';');
+        if (!vars.token.empty() && pos != std::string::npos)
+            vars.token.erase(vars.token.size() - 1);
+        else {
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException()); 
+        }
+        pos = vars.token.find_last_of('/');
+        if (pos != std::string::npos) {
+            std::string root = vars.token.substr(0, pos + 1);
+            std::string file = vars.token.substr(pos + 1);
+            vars.cur_server.error_pages[error_code] = std::make_pair(root, file);
+        } else {
+            vars.cur_server.error_pages[error_code] = std::make_pair("", vars.token);
         }
     }
-    return (error);
 }
 
-int    ConfigParser::listenToken(ParserVariables& vars) {
+void    ConfigParser::defaultServerRoot(ParserVariables& vars) {
 
-    size_t  colon_pos;
 
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
     vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());
+    }
     if (vars.it != vars.config_array.end()) {
 
         vars.token = *vars.it;
         size_t pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos)
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+
             vars.token.erase(vars.token.size() - 1);
-        else
-            return (1);
-        colon_pos = vars.token.find(':');
-        if (colon_pos != std::string::npos)
-            vars.cur_server.ips_and_ports.push_back(std::make_pair(vars.token.substr(0, colon_pos), std::atoi(vars.token.substr(colon_pos + 1).c_str())));
+            vars.cur_server.default_root = vars.token;
+        }
+        else {
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());   
+        }
     }
-    return (0);
 }
 
+void    ConfigParser::defaultServerIndex(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    for (; vars.it != vars.config_array.end(); ++vars.it) {
+
+        vars.token = *vars.it;
+        size_t found_semicolon = vars.token.find(';');
+
+        if (isMisconfiguredServer(vars) == true) {
+
+            std::cout << "[server] => " << "\"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());   
+        }
+        if (!vars.token.empty() && found_semicolon != std::string::npos) {
+
+            std::string temp = vars.token.substr(0, found_semicolon);
+            vars.cur_server.default_indices.push_back(temp);
+            break ;
+        }
+        vars.cur_server.default_indices.push_back(vars.token);
+    }
+}
+
+void    ConfigParser::rootToken(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    if (vars.it != vars.config_array.end()) {
+
+        vars.token = *vars.it;
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+
+            vars.token.erase(vars.token.size() - 1);
+            vars.cur_loc.root = vars.token;
+        }
+        else {
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            if (isMisconfiguredLocation(vars) == false) {
+                throw (ExtraVariablesException());   
+            }
+            throw (MissingClosingSemicolonException());   
+        }
+    }
+}
+
+void    ConfigParser::indexToken(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    for (; vars.it != vars.config_array.end(); ++vars.it) {
+
+        vars.token = *vars.it;
+        size_t found_semicolon = vars.token.find(';');
+
+        if (isMisconfiguredLocation(vars) == true && found_semicolon == std::string::npos) {
+
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());   
+        }
+        if (!vars.token.empty() && found_semicolon != std::string::npos) {
+
+            std::string temp = vars.token.substr(0, found_semicolon);
+            vars.cur_loc.indices.push_back(temp);
+            break ;
+        }
+        vars.cur_loc.indices.push_back(vars.token);
+    }
+}
+
+void    ConfigParser::methodsToken(ParserVariables& vars) {
+
+    size_t pos;
+    bool found = false;
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    for (; vars.it != vars.config_array.end(); ++vars.it) {
+
+        vars.token = *vars.it;
+        found = false;
+        pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+            vars.token.erase(vars.token.size() - 1);
+            found = true;
+        }
+        if (vars.token != "POST" && vars.token != "GET" && vars.token != "DELETE") {
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            throw (UnknownVariableValueException());
+            break ;
+        }
+        if (isMisconfiguredLocation(vars) == true) {
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());  
+        }
+        vars.cur_loc.methods.insert(vars.token);
+        if (found == true)
+            break ;
+    }
+}
+
+void    ConfigParser::autoIndexToken(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    if (vars.it != vars.config_array.end()) {
+
+        vars.token = *vars.it;
+        size_t pos = vars.token.find(';');
+
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+            vars.token.erase(vars.token.size() - 1);
+            if (vars.token == "on")
+                vars.cur_loc.auto_index = true;
+            else if (vars.token == "off")
+                vars.cur_loc.auto_index = false;
+            return ;
+        }
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        if (isMisconfiguredLocation(vars) == false && vars.token[0] == ';')
+            throw (MissingClosingSemicolonException());
+        throw (ExtraVariablesException());
+    }
+}
+
+void    ConfigParser::redirectToken(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    vars.token = *vars.it;
+    if (std::isdigit(vars.token[0])) {
+
+        vars.cur_loc.redirect_code = std::atoi(vars.token.c_str());
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';')
+            return ;
+        ++vars.it;
+        if (vars.it == vars.config_array.end()) {
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingBracketException()); 
+        }
+        vars.token = *vars.it;
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
+            vars.token.erase(vars.token.size() - 1);
+            if (!vars.token.empty())
+                vars.cur_loc.redirect = vars.token;
+            return ;
+        }
+        return ;
+    }
+    vars.cur_loc.redirect_code = 302;
+    if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';') {
+        vars.token.erase(vars.token.size() - 1);
+        vars.cur_loc.redirect = vars.token;
+        return ;
+    }
+    std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+    throw (MissingClosingSemicolonException()); 
+}
+
+void    ConfigParser::cgiExtensionToken(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    for (; vars.it != vars.config_array.end(); ++vars.it) {
+
+        vars.token = *vars.it;
+        if (isMisconfiguredLocation(vars) == true) {
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());
+        }
+        size_t semicolon_pos = vars.token.find(';');
+        if (semicolon_pos != std::string::npos) {
+            vars.token.erase(vars.token.size() - 1);
+            if (!vars.token.empty())
+                vars.cur_loc.cgi_extensions.insert(vars.token);
+            break ;
+        }
+        vars.cur_loc.cgi_extensions.insert(vars.token);
+    }
+}
+
+void    ConfigParser::uploadStoreToken(ParserVariables& vars) {
+
+    std::string temp_var = *vars.it;
+    if (temp_var.find(';') != std::string::npos) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingValueException());        
+    }
+    vars.it++;
+    if (vars.it == vars.config_array.end()) {
+        std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+        throw (MissingClosingBracketException());   
+    }
+    if (vars.it != vars.config_array.end()) {
+
+        vars.token = *vars.it;
+        size_t pos = vars.token.find(';');
+        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+                vars.token.erase(vars.token.size() - 1);
+                vars.cur_loc.upload_store = vars.token;
+                vars.token = *(++vars.it);
+        }
+        else {
+            std::cout << "[location " << vars.cur_loc.path << "] => \"" << temp_var << "\"" << " <= ";
+            throw (MissingClosingSemicolonException());
+        }
+    }
+}
 
 
 std::string ConfigParser::trim(const std::string& str) {
@@ -527,28 +651,30 @@ unsigned long      ConfigParser::str_to_unsigned_long(const std::string& s) {
 bool ConfigParser::isMisconfiguredLocation(ParserVariables& vars) {
 
     std::vector<std::string>::iterator next_it = vars.it;
-
-    if (next_it == vars.config_array.end())
-        return (false);
     
+    if (next_it == vars.config_array.end())
+        return (true);
+
     std::string token = *next_it;
+
     if (token == "}" || token == "{")
-        return (false);
-    if (token.find("upload_store") != std::string::npos)
-        return (false);
-    if (token.find("cgi_ext") != std::string::npos)
-        return (false);
-    if (token.find("return") != std::string::npos)
-        return (false);
-    if (token.find("autoindex") != std::string::npos)
-        return (false);
-    if (token.find("methods") != std::string::npos)
-        return (false);
-    if (token.find("root") != std::string::npos)
-        return (false);
-    if (token.find("index") != std::string::npos)
-        return (false);
-    return (true);
+        return (true);
+    if (token == "upload_store" || token == "upload_store;")
+        return (true);
+    if (token == "cgi_ext" || token == "cgi_ext;")
+        return (true);
+    if (token == "return" || token == "return;")
+        return (true);
+    if (token == "autoindex" || token == "autoindex;")
+        return (true);
+    if (token == "methods" || token == "methods;")
+        return (true);
+    if (token == "root" || token == "root;")
+        return (true);
+    if (token == "index" || token == "index;")
+        return (true);
+
+    return (false); 
 }
 
 bool ConfigParser::isMisconfiguredServer(ParserVariables& vars) {
@@ -556,42 +682,88 @@ bool ConfigParser::isMisconfiguredServer(ParserVariables& vars) {
     std::vector<std::string>::iterator next_it = vars.it;
 
     if (next_it == vars.config_array.end())
-        return (false);
-    
+        return (true);
+
     std::string token = *next_it;
+
     if (token == "}" || token == "{")
-        return (false);
-    if (token.find("server_name") != std::string::npos)
-        return (false);
-    if (token.find("error_page") != std::string::npos)
-        return (false);
-    if (token.find("client_max_body_size") != std::string::npos)
-        return (false);
-    if (token.find("listen") != std::string::npos)
-        return (false);
-    if (token.find("root") != std::string::npos)
-        return (false);
-    if (token.find("index") != std::string::npos)
-        return (false);  
-    return (true);
+        return (true);
+    if (token == "server_name" || token == "server_name;")
+        return (true);
+    if (token == "error_page" || token == "error_page;")
+        return (true);
+    if (token == "client_max_body_size" || token == "client_max_body_size;")
+        return (true);
+    if (token == "listen" || token == "listen;")
+        return (true);
+    if (token == "root" || token == "root;")
+        return (true);
+    if (token == "index" || token == "index;")
+        return (true);
+
+    return (false);
 }
+
 
 const std::vector<ServerConfig>& ConfigParser::getServers() const {
 
     return (_servers);
 }
 
+const char* ConfigParser::MissingValueException::what() const throw() {
+
+    return ("\033[1;31m Missing variable value.\033[0m");
+}
+
+const char* ConfigParser::MissingPortException::what() const throw() {
+
+    return ("\033[1;31m Missing port.\033[0m");
+}
+
+const char* ConfigParser::UnknownVariableException::what() const throw() {
+
+    return ("\033[1;31m Unknown variable.\033[0m");
+}
+
+const char* ConfigParser::ExtraVariablesException::what() const throw() {
+
+    return ("\033[1;31m Extra variables not supported.\033[0m");
+}
+
+const char* ConfigParser::UnknownVariableValueException::what() const throw() {
+
+    return ("\033[1;31m Extra variables not supported.\033[0m");
+}
+
+const char* ConfigParser::MissingClosingBracketException::what() const throw() {
+
+    return ("\033[1;31m Missing closing bracket.\033[0m");
+}
+
+const char* ConfigParser::MissingClosingSemicolonException::what() const throw() {
+
+    return ("\033[1;31m Missing semicolon.\033[0m");
+}
 
 const char* ConfigParser::MisconfigurationException::what() const throw() {
 
-    return ("\033[1;31m Misconfigured config file previous or post this.\033[0m");
+    return ("\033[1;31m Misconfigured config file.\033[0m");
+}
+
+const char* ConfigParser::ErrorCodeMisconfiguration::what() const throw() {
+
+    return ("\033[1;31m Misconfigured error code.\033[0m");
+}
+
+const char* ConfigParser::MissingErrorCodePage::what() const throw() {
+
+    return ("\033[1;31m Missing error_page path/file.\033[0m");
 }
 
 const char* ConfigParser::FileOpenErrorException::what() const throw() {
 
     return ("\033[1;31m Failed opening config file\033[0m");
 }
-
 
 void        ConfigParser::printParsedConfig(const std::vector<ServerConfig>& servers) {
 

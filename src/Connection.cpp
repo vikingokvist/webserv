@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/24 15:28:25 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/25 13:29:14 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -279,8 +279,6 @@ bool			Connection::checkRequest(ServerWrapper&	server, std::string root, ssize_t
 	}
 	return (true);
 }
-
-
 
 
 bool			Connection::fileExistsAndReadable(const char* path, int mode) {
