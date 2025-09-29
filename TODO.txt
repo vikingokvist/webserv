@@ -4,5 +4,4 @@ TODO limits
 
 - check in request if non-ascii characters
 
-
 - Checkar que todo tire errores correctos a std::cerr
