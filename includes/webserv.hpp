@@ -36,6 +36,7 @@
 #include <utility>
 #include <climits>
 
+class Connection;
 
 struct LocationConfig
 {
@@ -96,13 +97,14 @@ struct Endpoint
     Endpoint(const std::string &i, uint16_t p) : ip(i), port(p) {}
 };
 
-struct PollData
-{
+struct PollData {
     int fd;
     size_t server_index;
+	bool is_listener;
+	Connection *_conn;
 
-    PollData() {}
-    PollData(int _fd, int _i) : fd(_fd), server_index(_i) {}
+    PollData() : fd(-1), server_index(0), is_listener(false), _conn(0) {}
+    PollData(int _fd, size_t _i, bool _l) : fd(_fd), server_index(_i), is_listener(_l), _conn(0) {}
 };
 
 std::map<std::string, std::string>	parseUrlEncoded(const std::string& body);

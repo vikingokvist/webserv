@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/24 15:28:37 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/29 16:52:56 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,9 +24,12 @@
 #include <map>
 #include <iosfwd>
 #include <dirent.h>
+#include <ctime> 
 
 class ServerWrapper;
 extern std::string							_previous_full_path;
+
+
 
 class Connection {
 	
@@ -41,6 +44,7 @@ class Connection {
 		ssize_t								_best_match;
 		std::string							_request_complete;
 		std::string							_post_body;
+		std::time_t							_last_activity;
 		bool								_is_cgi_script;
 
 		typedef void						(Connection::*Handler)();

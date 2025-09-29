@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:19:49 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/29 15:54:01 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/29 17:00:25 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,56 +21,54 @@ Connection::Connection(ServerWrapper& _server) : _server(_server) {
 Connection::~Connection() {}
 
 
-bool			Connection::setConnection(ServerWrapper& _server, int listening_fd) {
-	this->_fd = accept(listening_fd, (struct sockaddr*)_server.getSockAddr(), (socklen_t*)_server.getSockAddr());
-	if (this->_fd < 0) {
-		
-		std::cerr << "accept() failed: " << strerror(errno) << std::endl;
-	}
-	if (!recieveRequest()) // Recibimos la Request
-		return (false);
-	if (!saveRequest()) // Guardamos la Request
-		return (false);
-	return (true);
-}
+bool Connection::recieveRequest() {
+    char buffer[1];
+    int bytes_received;
 
+    while (true) {
+        bytes_received = recv(getFd(), buffer, sizeof(buffer), 0);
 
-bool	Connection::recieveRequest() {
-	
-	this->_request_complete.clear();
-	char buffer[8192];
-	int bytes_received;
-	int content_length = 0;
+        if (bytes_received > 0) {
+            _request_complete.append(buffer, bytes_received);
+        } else if (bytes_received == 0) {
+            // Cliente cerró la conexión
+            return false;
+        } else {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                // No hay más datos por ahora (Edge-triggered)
+                break;
+            } else {
+                // Error real
+                perror("recv");
+                return false;
+            }
+        }
+    }
+	int _content_length = 0;
+    // Solo buscar Content-Length si aún no lo hiciste
+    if (_content_length == -1) {
+        size_t cl_pos = _request_complete.find("Content-Length:");
+        if (cl_pos != std::string::npos) {
+            size_t cl_end = _request_complete.find("\r\n", cl_pos);
+            std::string cl_str = _request_complete.substr(cl_pos + 15, cl_end - (cl_pos + 15));
+            _content_length = atoi(cl_str.c_str());
+            std::cout << "Content-Length: " << _content_length << std::endl;
+        }
+    }
 
-	// Leer headers + primer bloque
-	bytes_received = recv(getFd(), buffer, sizeof(buffer), 0);
-	if (bytes_received <= 0) return false;
-	this->_request_complete.append(buffer, bytes_received);
-	
+    // Verificar si recibimos todo el body
+    size_t header_end = _request_complete.find("\r\n\r\n");
+    if (header_end == std::string::npos) return false; // headers incompletos
 
-	// Buscar Content-Length
-	size_t cl_pos = this->_request_complete.find("Content-Length:");
-	if (cl_pos != std::string::npos) {
-		size_t cl_end = this->_request_complete.find("\r\n", cl_pos);
-		std::string cl_str = this->_request_complete.substr(cl_pos + 15, cl_end - (cl_pos + 15));
-		content_length = atoi(cl_str.c_str());
-		std::cout << "Content-Length: " << content_length << std::endl;
-	}
-
-	size_t header_end = this->_request_complete.find("\r\n\r\n");
-	size_t body_received = (this->_request_complete.size() > header_end + 4) ? _request_complete.size() - (header_end + 4) : 0;
-	
-	// Leer todo el body en bloques
-	while ((int)body_received < content_length) {
-		
-		bytes_received = recv(getFd(), buffer, sizeof(buffer), 0);
-		if (bytes_received <= 0) break;
-		this->_request_complete.append(buffer, bytes_received);
-		body_received += bytes_received;
-	}
-	
-	std::cout << "Total received: " << _request_complete.size() << " bytes\n";
-	return (true);
+    size_t body_received = _request_complete.size() - (header_end + 4);
+    if ((int)body_received < _content_length) {
+        // No hemos recibido todo el body aún
+        return false;
+    }
+	std::cout << "Header received: " << _request_complete.size() - body_received << " bytes\n";
+	std::cout << "body_received: " << body_received << " bytes\n";
+    std::cout << "Total received: " << _request_complete.size() << " bytes\n";
+    return true;
 }
 
 

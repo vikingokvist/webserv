@@ -2,7 +2,16 @@
 #include "../includes/Connection.hpp"
 #include "../includes/Servers.hpp"
 
-std::string _previous_full_path = "VARIABLE NO DEFINIDA";
+#include <algorithm>
+
+std::string _previous_full_path = "";
+
+
+void setNonBlocking(int fd) {
+    int flags = fcntl(fd, F_GETFL, 0);
+    if (flags == -1) flags = 0;
+    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+}
 
 void SetupAllServers(Servers& servers) {
 	for (size_t i = 0; i < servers.size(); i++) {
@@ -23,85 +32,145 @@ void SetupAllServers(Servers& servers) {
     }
 }
 
-// Aqui Configuro A Cada socket individualmente su fd, event y revent 
-void	PollConfig(Servers& servers, std::vector<PollData>& poll_data, std::vector<pollfd>& pollfds) {
+void print_epoll_event(const epoll_event &ev) {
+    std::cout << "fd: " << ev.data.fd << std::endl;
+    std::cout << "events: ";
 
-    for (size_t i = 0; i < servers.size(); i++) {
-		const std::vector<int> sockets = servers[i].getSockets();
-		for (size_t j = 0; j < sockets.size(); j++) {
-			// std::cout << "Socket del Server: " << i << " Con Socket: " << sockets[j] << std::endl;
-			poll_data.push_back(PollData(sockets[j], i));
-		}
-    }
+    if (ev.events & EPOLLIN)  std::cout << "EPOLLIN ";
+    if (ev.events & EPOLLOUT) std::cout << "EPOLLOUT ";
+    if (ev.events & EPOLLERR) std::cout << "EPOLLERR ";
+    if (ev.events & EPOLLHUP) std::cout << "EPOLLHUP ";
+    if (ev.events & EPOLLET) std::cout << "EPOLLET ";
+    if (ev.events & EPOLLONESHOT) std::cout << "EPOLLONESHOT ";
 
-	pollfds.resize(poll_data.size());
-	for (size_t i = 0; i < poll_data.size(); i++) {
-		pollfds[i].fd = poll_data[i].fd;
-		pollfds[i].events = POLLIN;
-		pollfds[i].revents = 0;
-	}
-
+    std::cout << std::endl;
 }
 
 int main(int argc, char **argv)
 {
-	std::string conf_file = (argc < 2) ? DEFAULT_CONF_FILE : argv[1];
+    std::string conf_file = (argc < 2) ? DEFAULT_CONF_FILE : argv[1];
+    if (argc > 2)
+        return (std::cout << ERROR_ARGUMENTS << std::endl, 1);
 
-	if (argc > 2)
-    	return (std::cout << ERROR_ARGUMENTS << std::endl, 1);
+    Servers servers(conf_file);
+	std::map<int, PollData> fd_map;
+    SetupAllServers(servers);
 
-	try
-	{
-		Servers servers(conf_file);
-		SetupAllServers(servers);
+    // Crear epoll
+    int epoll_fd = epoll_create(1);
+    if (epoll_fd == -1) {
+        perror("epoll_create1");
+        return 1;
+    }
 
-		std::vector<PollData> poll_data;
-		std::vector<pollfd> pollfds;
-		PollConfig(servers, poll_data, pollfds);
+    // Registrar sockets de escucha en epoll
+    for (size_t i = 0; i < servers.size(); i++) {
+        const std::vector<int>& sockets = servers[i].getSockets();
+        for (size_t j = 0; j < sockets.size(); j++) {
+            int listen_fd = sockets[j];
+            setNonBlocking(listen_fd);
 
-		while (true) 
-		{
-			// Wait for events on all server sockets
-    	    int ret = poll(pollfds.data(), pollfds.size(), -1);
-    	    if (ret == -1) {
-    	        std::cerr << "poll() failed: " << strerror(errno) << std::endl;
-    	        continue;
-    	    }
+            struct epoll_event ev;
+            memset(&ev, 0, sizeof(ev));
+            ev.events = EPOLLIN;
+            ev.data.fd = listen_fd;
 
-			for (size_t i = 0; i < pollfds.size(); i++) {
-				if (pollfds[i].revents & POLLIN) {
+            if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, listen_fd, &ev) == -1) {
+                perror("epoll_ctl: listen_fd");
+                return 1;
+            }
 
-					size_t server_idx = poll_data[i].server_index;
-					int listening_fd = pollfds[i].fd;
-					Connection _connection(servers[server_idx]);
-					std::cout << "\033[33mServer[" << server_idx << "]" <<" with socket: " << listening_fd << " \033[0m" <<std::endl;
+            // Guardar info en map
+            PollData pd;
+            pd.is_listener = true;
+            pd.server_index = i;
+            pd._conn = NULL;
+            fd_map[listen_fd] = pd;
 
-					if (_connection.setConnection(servers[server_idx], listening_fd)) {
-						if (_connection.prepareRequest()) {
+            std::cout << "✓ Server listening on fd " << listen_fd << std::endl;
+        }
+    }
 
-							if (_connection.isCgiScript())
-								_connection.sendCgiResponse();
-							else if (_connection.getHeader("Method") == "GET")
-								_connection.sendGetResponse();
-							else if (_connection.getHeader("Method") == "POST")
-								_connection.sendPostResponse();
-							else if (_connection.getHeader("Method") == "DELETE")
-								_connection.sendDeleteResponse();
-						}
-						else
-							_connection.sendError(404);
-					}
-					pollfds[i].revents = 0;
-				}
-			}
+    // Bucle principal
+    const int MAX_EVENTS = 1024;
+    epoll_event events[MAX_EVENTS];
+
+
+	while (true) {
+		int n = epoll_wait(epoll_fd, events, MAX_EVENTS, 1000);
+		if (n == -1) {
+			std::cerr << "epoll_wait failed: " << strerror(errno) << std::endl;
 		}
-		for (size_t i = 0; i < servers.size(); i++) {
-    	    close(servers[i].getSocket());
-    	}
+
+		for (int i = 0; i < n; i++) {
+            int fd = events[i].data.fd;
+			if (fd_map.find(fd) == fd_map.end())
+				continue;
+			
+			PollData &pd = fd_map[fd];
+
+            if (events[i].events & EPOLLIN) {
+                if (pd.is_listener) {
+                    // Listener -> aceptar cliente
+                    sockaddr_in client_addr;
+                    socklen_t client_len = sizeof(client_addr);
+                    int client_fd = accept(fd, (sockaddr*)&client_addr, &client_len);
+                    if (client_fd == -1) {
+                        perror("accept");
+                        continue;
+                    }
+                    setNonBlocking(client_fd);
+
+                    struct epoll_event client_ev;
+                    memset(&client_ev, 0, sizeof(client_ev));
+                    client_ev.events = EPOLLIN | EPOLLET;
+                    client_ev.data.fd = client_fd;
+                    epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &client_ev);
+
+                    // Guardar info de cliente en map
+                    PollData client_pd;
+                    client_pd.is_listener = false;
+                    client_pd.server_index = pd.server_index;
+                    client_pd._conn = new Connection(servers[pd.server_index]);
+                    fd_map[client_fd] = client_pd;
+
+                    std::cout << "✓ New client " << client_fd << " accepted on server fd " << fd << std::endl;
+                } else {
+					Connection* conn = pd._conn;
+					conn->setFd(fd);
+					// Recibir y preparar request
+					if (!conn->recieveRequest()
+						|| !conn->saveRequest()
+						|| !conn->prepareRequest()) {
+						close(fd);
+						epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, 0);
+						delete conn;
+						fd_map.erase(fd);
+						continue;
+					}
+					std::string method = conn->getHeader("Method");
+
+
+					if (conn->isCgiScript())
+						conn->sendCgiResponse();
+					if (method == "GET") {
+						conn->sendGetResponse();
+					} else if (method == "POST") {
+						conn->sendPostResponse();
+					} else if (method == "DELETE") {
+						conn->sendDeleteResponse();
+					}
+
+					// Cerrar fd y limpiar map
+					close(fd);
+					epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fd, 0);
+					delete conn;
+					fd_map.erase(fd);
+
+                }
+            }
+        }
 	}
-	catch(const std::exception& e)
-	{
-		std::cerr << e.what() << '\n';
-	}
+   
 	return (0);
 }
