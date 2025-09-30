@@ -1,8 +1,8 @@
-#include "../includes/SendResponse.hpp"
-#include "../includes/Connection.hpp" 
+#include "../includes/HttpSend.hpp"
+#include "../includes/HttpReceive.hpp" 
 
 
-void		SendResponse::sendGetResponse(int fd, Connection& _connection) {
+void		HttpSend::sendGetResponse(int fd, HttpReceive& _connection) {
 
 	std::ostringstream body_stream;
 	body_stream << _connection.getFile().rdbuf();
@@ -20,7 +20,7 @@ void		SendResponse::sendGetResponse(int fd, Connection& _connection) {
 	close(fd);
 }
 
-void		SendResponse::sendPostResponse(int fd, Connection& _connection, std::string _previous_full_path) {
+void		HttpSend::sendPostResponse(int fd, HttpReceive& _connection, std::string _previous_full_path) {
 
 	std::ostringstream body_stream;
 	body_stream << _connection.getFile().rdbuf();
@@ -38,7 +38,7 @@ void		SendResponse::sendPostResponse(int fd, Connection& _connection, std::strin
 	close(fd);
 }
 
-void		SendResponse::sendDeleteResponse(int fd, Connection& _connection) {
+void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _connection) {
 
 	std::ostringstream body_stream;
 	body_stream << _connection.getFile().rdbuf();
@@ -54,7 +54,7 @@ void		SendResponse::sendDeleteResponse(int fd, Connection& _connection) {
 	close(fd);
 }
 
-void		SendResponse::sendAutoResponse(int fd, Connection& _connection, const std::string &direction_path) {
+void		HttpSend::sendAutoResponse(int fd, HttpReceive& _connection, const std::string &direction_path) {
 
 	DIR * dir = opendir(direction_path.c_str());
 	if (!dir) {
@@ -99,7 +99,7 @@ void		SendResponse::sendAutoResponse(int fd, Connection& _connection, const std:
 	send(fd, response.str().c_str(), response.str().size(), 0);
 }
 
-void			SendResponse::sendCgiResponse(int fd, Connection& _connection) {
+void			HttpSend::sendCgiResponse(int fd, HttpReceive& _connection) {
 	
 	int		pipe_parent[2];
 	int		pipe_child[2];
@@ -197,7 +197,7 @@ void			SendResponse::sendCgiResponse(int fd, Connection& _connection) {
 	}
 }
 
-void        SendResponse::sendErr(int fd, Connection& _connection, int error_code, const std::string& status) {
+void        HttpSend::sendErr(int fd, HttpReceive& _connection, int error_code, const std::string& status) {
 
     std::ostringstream buf;
     std::string body;

@@ -3,6 +3,7 @@
 
 
 #include "./webserv.hpp"
+#include "./ConfigParser.hpp"
 
 struct Endpoint
 {
