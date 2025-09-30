@@ -4,6 +4,14 @@
 
 #include "./webserv.hpp"
 
+struct Endpoint
+{
+    std::string ip;
+    uint16_t    port;
+
+    Endpoint() {}
+    Endpoint(const std::string &i, uint16_t p) : ip(i), port(p) {}
+};
 
 class ServerWrapper
 {
@@ -30,18 +38,7 @@ class ServerWrapper
         ~ServerWrapper();
 
 
-        void addEndpoint(const std::string &ip, uint16_t port) {
-            endpoints.push_back(Endpoint(ip, port));
-        }
-        const std::vector<Endpoint>& getEndpoints() const {
-            return endpoints;
-        }
-        void addSocket(int sock) {
-            sockets.push_back(sock);
-        }
-        const std::vector<int>& getSockets() const {
-            return sockets;
-        }
+
         std::string                         getIps(size_t ip_index) const;
         size_t                              getIpCount() const;
         uint16_t                            getPorts(size_t port_index) const;
@@ -74,7 +71,7 @@ class ServerWrapper
         std::string                         getCgiExtensions(size_t loc_index, size_t cgi_extension_index) const;
         size_t                              getCgiExtensionCount(size_t loc_index) const;
         std::string                         getUploadStore(size_t loc_index) const;
-        uint16_t                            getCountIpPorts ();
+        uint16_t                            getCountIpPorts();
         
 
         void                                setSocket(int _fd);
@@ -84,9 +81,18 @@ class ServerWrapper
 		void                                setSinFamily(sa_family_t  _sin_family);
 		void                                setMaxClientSize(unsigned long _client_max_body_size);
 		void                                setLocations(const std::vector<LocationConfig>& _locations);
+        void                                addEndpoint(const std::string &ip, uint16_t port);
+        void                                addSocket(int sock);
+        void	                            setupSockAddr();
+		void	                            bindAndListen();
+		void	                            setupSocket();
+		void	                            setupServerConfig(const std::vector<std::string>& _server_name, uint16_t _port, in_addr_t _host, sa_family_t _sin_family, unsigned long _client_max_body_size);
 
-
-		int                                 getSocket() const;
+        
+        size_t                              getSocketsSize() const;
+        const std::vector<int>&             getSockets() const;
+        int                                 getSocket(std::size_t index) const;
+		int                                 getTheSocket() const;
 		const std::vector<std::string>&     getServerName() const;
 		uint16_t			                getPort() const;
 		in_addr_t			                getHost() const;
@@ -94,14 +100,7 @@ class ServerWrapper
 		unsigned long		                getMaxClientSize() const;
 		struct sockaddr_in*	                getSockAddr();
         int                                 getFD() const;
-
-
-        void	                            setupSockAddr();
-		void	                            bindAndListen();
-		void	                            setupSocket();
-		void	                            setupServerConfig(const std::vector<std::string>& _server_name, uint16_t _port, in_addr_t _host,
-				sa_family_t _sin_family, unsigned long _client_max_body_size);
-
+        const std::vector<Endpoint>&        getEndpoints() const;
 
 };
 

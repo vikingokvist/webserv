@@ -1,7 +1,7 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
-#define MAX_CLIENTS 100
+
 #define DEFAULT_CONF_FILE "www/default.conf"
 #define ERROR_ARGUMENTS "Error: Wrong amount of arguments."
 
@@ -88,24 +88,9 @@ struct Part
 	std::string	content_type;
 };
 
-struct Endpoint
-{
-    std::string ip;
-    uint16_t    port;
 
-    Endpoint() {}
-    Endpoint(const std::string &i, uint16_t p) : ip(i), port(p) {}
-};
 
-struct PollData {
-    int fd;
-    size_t server_index;
-	bool is_listener;
-	Connection *_conn;
 
-    PollData() : fd(-1), server_index(0), is_listener(false), _conn(0) {}
-    PollData(int _fd, size_t _i, bool _l) : fd(_fd), server_index(_i), is_listener(_l), _conn(0) {}
-};
 
 std::map<std::string, std::string>	parseUrlEncoded(const std::string& body);
 std::vector<Part>                   parseMultipart(const std::string& body, const std::string& boundary);

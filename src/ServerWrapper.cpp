@@ -305,8 +305,39 @@ void                ServerWrapper::setLocations(const std::vector<LocationConfig
 	this->_locations = _locations;
 }
 
+void                ServerWrapper::addEndpoint(const std::string &ip, uint16_t port) {
 
-int                 ServerWrapper::getSocket() const {
+    this->endpoints.push_back(Endpoint(ip, port));
+}
+
+const std::vector<Endpoint>& ServerWrapper::getEndpoints() const {
+
+    return (this->endpoints);
+}
+
+void                ServerWrapper::addSocket(int sock) {
+
+    this->sockets.push_back(sock);
+}
+
+const std::vector<int>& ServerWrapper::getSockets() const {
+
+    return (this->sockets);
+}
+
+int                 ServerWrapper::getSocket(std::size_t index) const {
+    
+    if (index >= this->sockets.size())
+        return (-1);
+    return (this->sockets.at(index));
+}
+
+size_t              ServerWrapper::getSocketsSize() const {
+
+    return (this->sockets.size());
+}
+
+int                 ServerWrapper::getTheSocket() const {
 
     return (this->_fd);
 }

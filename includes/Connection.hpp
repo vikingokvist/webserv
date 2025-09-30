@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/09/29 16:52:56 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/09/30 14:06:09 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,8 +28,6 @@
 
 class ServerWrapper;
 extern std::string							_previous_full_path;
-
-
 
 class Connection {
 	
@@ -53,7 +51,6 @@ class Connection {
 		Connection(ServerWrapper& _server);
 		~Connection();
 	
-		bool 								setConnection(ServerWrapper& _server, int listening_fd);
 		bool								prepareRequest();
 		bool								recieveRequest();
 		bool								saveRequest();
