@@ -2,15 +2,15 @@
 #include "../includes/HttpReceive.hpp" 
 
 
-void		HttpSend::sendGetResponse(int fd, HttpReceive& _connection) {
+void		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
-	body_stream << _connection.getFile().rdbuf();
+	body_stream << _request.getFile().rdbuf();
 	std::string body = body_stream.str();
 
 	std::ostringstream oss;
 	oss << "HTTP/1.1 200 OK\r\n";
-	oss << "Content-Type: " << getContentType(_connection.getFullPath()) << "\r\n";
+	oss << "Content-Type: " << getContentType(_request.getFullPath()) << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
 	oss << "Connection: close\r\n\r\n";
 	oss << body;
@@ -20,15 +20,15 @@ void		HttpSend::sendGetResponse(int fd, HttpReceive& _connection) {
 	close(fd);
 }
 
-void		HttpSend::sendPostResponse(int fd, HttpReceive& _connection) {
+void		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
-	body_stream << _connection.getFile().rdbuf();
+	body_stream << _request.getFile().rdbuf();
 	std::string body = body_stream.str();
 	
 	std::ostringstream oss;
 	oss << "HTTP/1.1 303 See Other\r\n";
-	oss << "Location: "<< _connection.getHeader("Path") << "\r\n";
+	oss << "Location: "<< _request.getHeader("Path") << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
 	oss << "Connection: close\r\n\r\n";
 
@@ -37,10 +37,10 @@ void		HttpSend::sendPostResponse(int fd, HttpReceive& _connection) {
 	close(fd);
 }
 
-void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _connection) {
+void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
-	body_stream << _connection.getFile().rdbuf();
+	body_stream << _request.getFile().rdbuf();
 	std::string body = body_stream.str();
 
     std::ostringstream oss;
@@ -53,18 +53,18 @@ void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _connection) {
 	close(fd);
 }
 
-void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _connection, size_t best_match) {
+void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_match) {
 
 	std::string			response;
 	std::ostringstream	oss;
-	int					error_code = _connection.getServer().getRedirectCode(best_match);
-	std::string			url_or_loc = _connection.getServer().getRedirectUrl(best_match);
+	int					error_code = _request.getServer().getRedirectCode(best_match);
+	std::string			url_or_loc = _request.getServer().getRedirectUrl(best_match);
 
 	
 
 	if (url_or_loc.empty() || (!url_or_loc.empty() && error_code != 301 && error_code != 302)) {
 
-		sendErr(fd, _connection, error_code);
+		sendErr(fd, _request, error_code);
 	}
 	else if (!url_or_loc.empty() && (error_code == 301 || error_code  == 302)) {
 
@@ -80,16 +80,16 @@ void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _connection, size_t be
 
 }
 
-void		HttpSend::sendAutoResponse(int fd, HttpReceive& _connection, const std::string &direction_path) {
+void		HttpSend::sendAutoResponse(int fd, HttpReceive& _request, const std::string &direction_path) {
 
 	DIR * dir = opendir(direction_path.c_str());
 	if (!dir) {
-		send403(fd, _connection);
+		send403(fd, _request);
 		return ;
 	}
 	std::ostringstream body;
-	body << "<html><head><title>Index of " << _connection.getHeader("Path") << "</title></head><body>";
-	body << "<h1>Index of " << _connection.getHeader("Path") << "</h1><ul>";
+	body << "<html><head><title>Index of " << _request.getHeader("Path") << "</title></head><body>";
+	body << "<h1>Index of " << _request.getHeader("Path") << "</h1><ul>";
 
 	struct dirent* entry;
 	while ((entry = readdir(dir)) != NULL) {
@@ -98,7 +98,7 @@ void		HttpSend::sendAutoResponse(int fd, HttpReceive& _connection, const std::st
 		if (name == "." || name == "..")
 			continue ;
 
-		std::string href = _connection.getHeader("Path");
+		std::string href = _request.getHeader("Path");
 		if (href.empty() || href[href.size()-1] != '/')
 			href += "/";
 		href += name;
@@ -125,7 +125,7 @@ void		HttpSend::sendAutoResponse(int fd, HttpReceive& _connection, const std::st
 	send(fd, response.str().c_str(), response.str().size(), 0);
 }
 
-void			HttpSend::sendCgiResponse(int fd, HttpReceive& _connection) {
+void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 	
 	int		pipe_parent[2];
 	int		pipe_child[2];
@@ -134,57 +134,57 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _connection) {
 	
 	if (pipe(pipe_parent) == -1) {
 		std::cerr << "Parent pipe() failed: " << strerror(errno) << std::endl;
-    	send500(fd, _connection); return ;
+    	send500(fd, _request); return ;
 	}
 	if (pipe(pipe_child) == -1) {
 		std::cerr << "Child pipe() failed: " << strerror(errno) << std::endl;
-    	send500(fd, _connection); return ;
+    	send500(fd, _request); return ;
 	}
 	pid = fork();
 	if (pid < 0) {
 		std::cerr << "fork() failed: " << strerror(errno) << std::endl;
-    	send500(fd, _connection); return ;
+    	send500(fd, _request); return ;
 	}
 	else if (pid == 0) {
 		
 		if (dup2(pipe_parent[0], STDIN_FILENO) == -1) {
 			std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
 			close(pipe_parent[0]); close(pipe_parent[1]); close(pipe_child[0]); close(pipe_child[1]);
-			send500(fd, _connection); exit(1);
+			send500(fd, _request); exit(1);
 		}
 		if (dup2(pipe_child[1], STDOUT_FILENO) == -1) {
 			std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
 			close(pipe_parent[0]); close(pipe_parent[1]); close(pipe_child[0]); close(pipe_child[1]);
-			send500(fd, _connection); exit(1);
+			send500(fd, _request); exit(1);
 		}
 		close(pipe_parent[1]);
 		close(pipe_child[0]);
 		
 		std::string script_name;
 		std::string script_file_path;
-		size_t script_name_pos = _connection.getHeader("Path").rfind('/');
+		size_t script_name_pos = _request.getHeader("Path").rfind('/');
 		if (script_name_pos != std::string::npos) {
-			script_name = _connection.getHeader("Path").substr(script_name_pos + 1);
-			script_file_path = _connection.getHeader("Root") + script_name;
+			script_name = _request.getHeader("Path").substr(script_name_pos + 1);
+			script_file_path = _request.getHeader("Root") + script_name;
 		}
 		
 		if (access(script_file_path.c_str(), R_OK) != 0) {
 			//CHECK IF NEED TO CLOSE FDS
 			std::cerr << "File not executable: " << strerror(errno) << std::endl;
-			send403(fd, _connection); exit(1);
+			send403(fd, _request); exit(1);
 		}
 
 		std::vector<std::string> env_strings;
 		std::vector<char*> envp;
 
 		
-		env_strings.push_back("REQUEST_METHOD=" + _connection.getHeader("Method"));
-		env_strings.push_back("CONTENT_LENGTH=" + _connection.getHeader("Content-Length"));
-		env_strings.push_back("CONTENT_TYPE=" + _connection.getHeader("Content-Type"));
+		env_strings.push_back("REQUEST_METHOD=" + _request.getHeader("Method"));
+		env_strings.push_back("CONTENT_LENGTH=" + _request.getHeader("Content-Length"));
+		env_strings.push_back("CONTENT_TYPE=" + _request.getHeader("Content-Type"));
 		env_strings.push_back("SCRIPT_NAME=" + script_name);
 		env_strings.push_back("SCRIPT_FILEPATH=" + script_file_path);
-		env_strings.push_back("SERVER_PROTOCOL=" + _connection.getHeader("Version"));
-		env_strings.push_back("QUERY_STRING=" + _connection.getPostBody());
+		env_strings.push_back("SERVER_PROTOCOL=" + _request.getHeader("Version"));
+		env_strings.push_back("QUERY_STRING=" + _request.getPostBody());
 		
 		for (size_t i = 0; i < env_strings.size(); i++)
 			envp.push_back(const_cast<char*>(env_strings[i].c_str()));
@@ -194,7 +194,7 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _connection) {
 		
 		if (execve(script_file_path.c_str(), argv, envp.data()) == -1) {
 			std::cerr << "Child execve() failed: " << strerror(errno) << std::endl;
-			send500(fd, _connection);exit(1);
+			send500(fd, _request);exit(1);
 		}
 	}
 	else {
@@ -202,7 +202,7 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _connection) {
 		close(pipe_parent[0]);
 		close(pipe_child[1]);
 
-		write(pipe_parent[1], _connection.getPostBody().c_str(), _connection.getPostBodySize());
+		write(pipe_parent[1], _request.getPostBody().c_str(), _request.getPostBodySize());
 		close(pipe_parent[1]);
 
 		char buffer[4096];
@@ -215,21 +215,21 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _connection) {
 		
 		std::string http_response = "HTTP/1.1 200 OK\r\n";
 		http_response += cgi_output;
-		send(_connection.getFd(), http_response.c_str(), http_response.size(), 0);
-		close(_connection.getFd());
+		send(_request.getFd(), http_response.c_str(), http_response.size(), 0);
+		close(_request.getFd());
 
 		int status;
 		waitpid(pid, &status, 0);
 	}
 }
 
-void        HttpSend::sendErr(int fd, HttpReceive& _connection, int error_code) {
+void        HttpSend::sendErr(int fd, HttpReceive& _request, int error_code) {
 
     std::ostringstream buf;
     std::string body;
     std::string response;
-    std::string root = _connection.getServer().getErrorRoot(error_code).c_str();
-    std::string file = _connection.getServer().getErrorFile(error_code).c_str();
+    std::string root = _request.getServer().getErrorRoot(error_code).c_str();
+    std::string file = _request.getServer().getErrorFile(error_code).c_str();
     std::string full_path = root + file;
     int         error = 1;
 

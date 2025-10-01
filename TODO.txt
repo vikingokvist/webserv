@@ -24,3 +24,6 @@ returned from the CGI, EOF will mark the end of the returned data.
         - return 234 "http://url.com"
         - return 123 "string"
         - return "url"  (WRONG)
+
+
+- UPLOAD STORE ERROR
