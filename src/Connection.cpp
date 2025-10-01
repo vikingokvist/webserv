@@ -1,6 +1,6 @@
 #include "../includes/Connection.hpp"
 
-Connection::Connection(Servers& servers) : events()  {
+Connection::Connection(Servers& servers) : events(MAX_EVENTS)  {
 
     SetupAllServers(servers);
     createEpollInstance();
@@ -94,12 +94,12 @@ int            Connection::acceptClient(Servers& servers, int fd, PollData &pd) 
 
     setNonBlocking(client_fd);
     addClientEpollEvent(client_fd);
-    populateClientPollData(servers, pd);
+    populateClientPollData(servers, pd, client_fd);
     std::cout << "✓ New client " << client_fd << " accepted on server fd " << fd << std::endl;
     return (0);
 }
 
-void                Connection::populateClientPollData(Servers& servers, PollData &pd) {
+void                Connection::populateClientPollData(Servers& servers, PollData &pd, int client_fd) {
 
     PollData client_pd;
 
@@ -153,13 +153,9 @@ void              Connection::print_epoll_event(const epoll_event &ev) {
 
 void                Connection::setEpollFd(int fd) {this->epoll_fd = fd;}
 
-void                Connection::setListenFd(int fd) {this->listen_fd = fd;}
-
 int                 Connection::getEpollFd() const {return (this->epoll_fd);}
 
-int                 Connection::getListenFd() const {return (this->listen_fd);}
-
-epoll_event*        Connection::getEpollEvents() {return (this->events);}
+epoll_event*        Connection::getEpollEvents() {return (&this->events[0]);}
 
 epoll_event&        Connection::getEpollEvent(int index) {
 

@@ -17,8 +17,6 @@
 #include "./Servers.hpp"
 #include "./HttpReceive.hpp"
 
-
-
 struct PollData
 {
     int             fd;
@@ -34,10 +32,8 @@ class Connection : public Servers
 {
     private:
         std::map<int, PollData>         fd_map;
-        epoll_event                     events[MAX_EVENTS];
+        std::vector<epoll_event>        events;
         int                             epoll_fd;
-        int                             listen_fd;
-        int                             client_fd;
 
         void                            SetupAllServers(Servers& servers);
         void                            populateSockets(Servers& servers);
@@ -45,7 +41,7 @@ class Connection : public Servers
         void                            setNonBlocking(int fd);
         void                            populateServerPollData(int index, int listen_fd);
         void                            addServerEpollEvent(int listen_fd);
-        void                            populateClientPollData(Servers& servers, PollData &pd);
+        void                            populateClientPollData(Servers& servers, PollData &pd, int client_fd);
         void                            addClientEpollEvent(int client_fd);
 
 
@@ -60,9 +56,7 @@ class Connection : public Servers
         int                             acceptClient(Servers& servers, int fd, PollData &pd);
         void                            removeClient(PollData& pd);
         void                            setEpollFd(int fd);
-        void                            setListenFd(int fd);
         int                             getEpollFd() const;
-        int                             getListenFd() const;
         epoll_event*                    getEpollEvents();
         epoll_event&                    getEpollEvent(int index);
         std::map<int, PollData>&        getFdMap();

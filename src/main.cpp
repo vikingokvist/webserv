@@ -26,11 +26,10 @@ int main(int argc, char **argv)
 		for (int i = 0; i < ready_fds; i++) {
 
             int fd = conn.getEpollEvent(i).data.fd;
-			std::map<int, PollData>::iterator it = conn.getFdMap().find(fd);
-			if (it == conn.getFdMap().end())
+			if (conn.getFdMap().find(fd) == conn.getFdMap().end())
 				continue ;
 			
-			PollData &pd = it->second;
+			PollData &pd = conn.getFdMap()[fd];
             if (conn.getEpollEvent(i).events & EPOLLIN) {
 
                 if (pd.is_listener) {
