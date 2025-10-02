@@ -18,6 +18,25 @@ int main(int argc, char **argv)
 		if (ready_fds == -1) {
 			std::cerr << "epoll_wait failed: " << strerror(errno) << std::endl;
 		}
+		time_t now = std::time(0);
+		std::vector<int> fds_to_remove;
+
+		for (std::map<int, PollData>::iterator it = conn.getFdMap().begin(); it != conn.getFdMap().end(); ++it) {
+			PollData &pd = it->second;
+			if (!pd.is_listener)
+				std::cout << "fd: "<< pd.client->getFd() << " -> " << now - pd._start_time << " ms" << std::endl;
+			if (!pd.is_listener && (now - pd._start_time >= CLIENT_TIME_OUT / 100)) {
+				fds_to_remove.push_back(it->first);
+			}
+		}
+		
+		for (size_t i = 0; i < fds_to_remove.size(); i++) {
+			std::map<int, PollData>::iterator it = conn.getFdMap().find(fds_to_remove[i]);
+			if (it != conn.getFdMap().end()) {
+				std::cout << "Cliente con fd: " << it->first << " ha sido eliminado " << std::endl;
+				conn.removeClient(it->second);
+			}
+		}
 
 		for (int i = 0; i < ready_fds; i++) {
 
@@ -26,14 +45,13 @@ int main(int argc, char **argv)
 				continue ;
 			
 			PollData &pd = conn.getFdMap()[fd];
+			
             if (pd.is_listener && (conn.getEpollEvent(i).events & EPOLLIN)) {
-
-                    if (conn.acceptClient(servers, fd, pd) == -1)
-                        continue ;
+				if (conn.acceptClient(servers, fd, pd) == -1)
+					continue ;
 			}
             else if (!pd.is_listener && (conn.getEpollEvent(i).events & EPOLLIN)) {
 
-				pd.client->setFd(fd);
 				if (!pd.client->receiveRequest() || !pd.client->saveRequest() || !pd.client->prepareRequest()) {
             	    conn.removeClient(pd);
 					continue ;
@@ -51,8 +69,8 @@ int main(int argc, char **argv)
 					pd.client->sendPostResponse();
 				else if (method == "DELETE")
 					pd.client->sendDeleteResponse();
-			
-            	conn.removeClient(pd);
+					
+				conn.removeClient(pd);
             }
         }
     }

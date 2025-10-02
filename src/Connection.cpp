@@ -89,10 +89,22 @@ int            Connection::acceptClient(Servers& servers, int fd, PollData &pd) 
     socklen_t       client_len = sizeof(client_addr);
     int             client_fd = accept(fd, (sockaddr*)&client_addr, &client_len);
 
-    if (client_fd == -1)
-        return (-1);
+    if (client_fd == -1) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            return (0);
+        } else if (errno == ECONNABORTED) {
+            std::cerr << "accept() failed: ECONNABORTED" << std::endl;
+            return (-1);
+        } else if (errno == EMFILE || errno == ENFILE) {
+            std::cerr << "accept() failed: too many open files" << std::endl;
+            return -1; 
+        }
+    }
 
-    setNonBlocking(client_fd);
+    if (setNonBlocking(client_fd) == -1) {
+        close(client_fd);
+        return (-1);
+    }
     addClientEpollEvent(client_fd);
     populateClientPollData(servers, pd, client_fd);
     std::cout << "✓ New client " << client_fd << " accepted on server fd " << fd << std::endl;
@@ -103,9 +115,12 @@ void                Connection::populateClientPollData(Servers& servers, PollDat
 
     PollData client_pd;
 
+    client_pd._start_time = std::time(0);
+    client_pd.client_time_out = false;
     client_pd.is_listener = false;
     client_pd.server_index = pd.server_index;
     client_pd.client = new HttpReceive(servers[pd.server_index]);
+    client_pd.client->setFd(client_fd); 
     this->fd_map[client_fd] = client_pd;
 }
 
@@ -119,21 +134,37 @@ void                Connection::addClientEpollEvent(int client_fd) {
     epoll_ctl(getEpollFd(), EPOLL_CTL_ADD, client_fd, &client_ev);
 }
 
-void                Connection::setNonBlocking(int fd) {
+int                 Connection::setNonBlocking(int fd) {
 
     int flags = fcntl(fd, F_GETFL, 0);
-    if (flags == -1)
-        flags = 0;
-    fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+    if (flags == -1) {
+        std::cerr << "fcntl(F_GETFL) error: " << strerror(errno) << std::endl;
+        return (-1);
+    }
+
+    if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+        std::cerr << "fcntl(F_SETFL) error: " << strerror(errno) << std::endl;
+        return (-1);
+    }
+    return (0);
 }
 
 
-void              Connection::removeClient(PollData& pd) {
+void            Connection::removeClient(PollData& pd) {
 
-	close(pd.client->getFd());
-	epoll_ctl(getEpollFd(), EPOLL_CTL_DEL, pd.client->getFd(), 0);
-	delete pd.client;
-	this->fd_map.erase(pd.client->getFd());
+    if (pd.client == NULL)
+        return;
+    
+    int client_fd = pd.client->getFd();
+    
+    if (client_fd != -1) {
+        epoll_ctl(getEpollFd(), EPOLL_CTL_DEL, client_fd, NULL);
+        close(client_fd);
+    }
+    delete pd.client;
+    pd.client = NULL;
+
+    this->fd_map.erase(client_fd);
 }
 
 void              Connection::print_epoll_event(const epoll_event &ev) {
