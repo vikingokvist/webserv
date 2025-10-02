@@ -547,18 +547,15 @@ void    ConfigParser::uploadStoreToken(ParserVariables& vars) {
     vars.it++;
     if (vars.it == vars.config_array.end())
         throw (MissingClosingBracketException("location " + vars.cur_loc.path));   
-    if (vars.it != vars.config_array.end()) {
-
-        vars.token = *vars.it;
-        size_t pos = vars.token.find(';');
-        if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
-                vars.token.erase(vars.token.size() - 1);
-                vars.cur_loc.upload_store = vars.token;
-                vars.token = *(++vars.it);
-        }
-        else
-            throw (MissingClosingSemicolonException(temp_var, "location " + vars.cur_loc.path));
+    vars.token = *vars.it;
+    size_t pos = vars.token.find(';');
+    if (!vars.token.empty() && vars.token[vars.token.size() - 1] == ';' && pos != std::string::npos) {
+        
+            vars.token.erase(vars.token.size() - 1);
+            vars.cur_loc.upload_store = vars.token;
     }
+    else
+        throw (MissingClosingSemicolonException(temp_var, "location " + vars.cur_loc.path));
 }
 
 
