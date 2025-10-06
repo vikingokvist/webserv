@@ -38,7 +38,7 @@ RecvStatus	HttpReceive::receiveRequest() {
 
         }
 		else if (bytes_received == 0) {
-
+		
             return (RECV_CLOSED);
         }
 		else if (bytes_received < 0) {
@@ -50,18 +50,19 @@ RecvStatus	HttpReceive::receiveRequest() {
         }
     }
 	size_t header_end = _request_complete.find("\r\n\r\n");
-    if (header_end == std::string::npos && !this->_headers_parsed)
-        return (RECV_INCOMPLETE);
-    else if (!this->_headers_parsed)
-		return (RECV_HEADER_COMPLETE);
-
+    if (header_end == std::string::npos) {
+		return (RECV_INCOMPLETE);
+	}
+    if (!this->_headers_parsed) {
+		if (saveRequest() == false)
+			return (RECV_ERROR);
+	}
     this->_post_body = _request_complete.substr(header_end + 4);
     if (this->_headers.find("Transfer-Encoding") != this->_headers.end() && this->_headers["Transfer-Encoding"] == "chunked") {
 
         if (this->_post_body.find("0\r\n\r\n") == std::string::npos)
             return (RECV_INCOMPLETE);
-		if (parseChunkedBody() == false)
-			return (RECV_PAYLOAD_TOO_LARGE_ERROR);
+		parseChunkedBody();
     }
 	if (this->_headers.find("Content-Type") != this->_headers.end()) {
 

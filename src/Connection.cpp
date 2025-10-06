@@ -180,7 +180,7 @@ void        Connection::removeTimeoutClients(time_t now) {
 		PollData &pd = it->second;
 		if (!pd.is_listener)
 			std::cout << "fd: "<< pd.client->getFd() << " -> " << now - pd._start_time << " ms" << std::endl;
-		if (!pd.is_listener && (now - pd._current_time >= CLIENT_REQUEST_TIME_OUT || now - pd._start_time >= CLIENT_TOTAL_TIME_OUT)) {
+		if (!pd.is_listener && (now - pd._current_time >= CLIENT_REQUEST_TIME_OUT)) {
 			fds_to_remove.push_back(it->first);
 		}
 	}
