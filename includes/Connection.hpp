@@ -14,7 +14,8 @@
 #define MAX_EVENTS 1024
 #define TIME_OUT 1000
 // seconds
-#define CLIENT_TIME_OUT 3
+#define CLIENT_REQUEST_TIME_OUT 3
+#define CLIENT_TOTAL_TIME_OUT 20
 
 #include "./Servers.hpp"
 #include "./HttpReceive.hpp"
@@ -26,6 +27,7 @@ struct PollData
 	bool            is_listener;
 	HttpReceive     *client;
     int             _start_time;
+    int             _current_time;
     bool            client_time_out;
 
     PollData() : fd(-1), server_index(0), is_listener(false), client(NULL) {}

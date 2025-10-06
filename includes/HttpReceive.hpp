@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/03 17:30:20 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/06 12:29:30 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -97,8 +97,8 @@ class HttpReceive {
 		bool								isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method);		
 		bool								fileExistsAndReadable(const char* path, int mode);
 		void								printParserHeader(void);
-		std::vector<Part>                   parseMultipart(const std::string& body, const std::string& boundary);
-		void								parseChunkedBody();
+		void								parseMultipart(const std::string& body, const std::string& boundary);
+		bool								parseChunkedBody();
 
 		
 		void								sendGetResponse();

@@ -34,10 +34,8 @@ RecvStatus	HttpReceive::receiveRequest() {
 
         if (bytes_received > 0) {
 
-			if (_request_complete.size() + static_cast<size_t>(bytes_received) > this->_server.getClientMaxBodySize()) {
-				return (RECV_PAYLOAD_TOO_LARGE_ERROR);
-			}
-            _request_complete.append(buffer, bytes_received);
+			_request_complete.append(buffer, bytes_received);
+
         }
 		else if (bytes_received == 0) {
 
@@ -52,26 +50,23 @@ RecvStatus	HttpReceive::receiveRequest() {
         }
     }
 	size_t header_end = _request_complete.find("\r\n\r\n");
-    if (header_end == std::string::npos)
+    if (header_end == std::string::npos && !this->_headers_parsed)
         return (RECV_INCOMPLETE);
-
-    if (!this->_headers_parsed) {
+    else if (!this->_headers_parsed)
 		return (RECV_HEADER_COMPLETE);
-    }
 
     this->_post_body = _request_complete.substr(header_end + 4);
+    if (this->_headers.find("Transfer-Encoding") != this->_headers.end() && this->_headers["Transfer-Encoding"] == "chunked") {
 
-    if (this->_headers["Transfer-Encoding"] == "chunked") {
-
-        if (_post_body.find("0\r\n\r\n") == std::string::npos)
+        if (this->_post_body.find("0\r\n\r\n") == std::string::npos)
             return (RECV_INCOMPLETE);
-		else
-			parseChunkedBody();
+		if (parseChunkedBody() == false)
+			return (RECV_PAYLOAD_TOO_LARGE_ERROR);
     }
 	if (this->_headers.find("Content-Type") != this->_headers.end()) {
 
 		if (this->_headers["Content-Type"] == "multipart/form-data")
-			this->parts = parseMultipart(this->_post_body, this->_headers["Boundary"]);
+			parseMultipart(this->_post_body, this->_headers["Boundary"]);
 
 	}
     std::cout << "Total received: " << _request_complete.size() << " bytes\n";
@@ -90,9 +85,11 @@ bool			HttpReceive::saveRequest() {
 	if (header_end == std::string::npos)
 		return (sendError(400));
 	request  = request.substr(0, header_end);
-	
+	if (request.size() > this->_server.getClientMaxBodySize())
+		return (sendError(413));
+
 	if (!std::getline(iss, line) || line.empty())
-		return (send400Response(), false);
+		return (sendError(400));
 
 	std::istringstream request_line(line);
 	std::string method, path, version;
@@ -236,7 +233,7 @@ bool			HttpReceive::checkRequest() {
 		if (!this->_file) 
 			return (sendError(404));
 	}
-	else if (!this->_headers["Boundary"].empty() && this->_headers["Method"] == "POST") {
+	else if (this->_headers.find("Boundary") != this->_headers.end() && this->_headers["Method"] == "POST") {
 		
 		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
 			return (sendError(405));
@@ -279,7 +276,7 @@ bool			HttpReceive::checkRequest() {
 	return (true);
 }
 
-std::vector<Part>	HttpReceive::parseMultipart(const std::string& body, const std::string& boundary) {
+void	HttpReceive::parseMultipart(const std::string& body, const std::string& boundary) {
 	
 	std::vector<Part> parts;
 	std::string delimiter = "--" + boundary;
@@ -291,14 +288,10 @@ std::vector<Part>	HttpReceive::parseMultipart(const std::string& body, const std
 		if (pos == std::string::npos) break;
 		pos += delimiter.size();
 
-		// Saltar CRLF
 		if (body.substr(pos, 2) == "\r\n") pos += 2;
-
-		// Si encontramos el delimitador final
 		if (body.compare(pos, endDelimiter.size(), endDelimiter) == 0)
 			break;
 
-		// Buscar fin de headers
 		size_t headerEnd = body.find("\r\n\r\n", pos);
 		if (headerEnd == std::string::npos)
 			break;
@@ -306,24 +299,21 @@ std::vector<Part>	HttpReceive::parseMultipart(const std::string& body, const std
 			
 		std::string headers = body.substr(pos, headerEnd - pos);
 
-		// Extraer Content-Type
 		std::string content_type;
 		size_t ct_pos = headers.find("Content-Type:");
 		if (ct_pos != std::string::npos) {
-			ct_pos += 14; // salto "Content-Type:"
+			ct_pos += 14;
 			size_t ct_end = headers.find("\r\n", ct_pos);
 			if (ct_end == std::string::npos) ct_end = headers.size();
 				content_type = headers.substr(ct_pos, ct_end - ct_pos);
 
 		}
-		pos = headerEnd + 4; // saltar \r\n\r\n
+		pos = headerEnd + 4;
 
-		// Buscar siguiente boundary
 		size_t next = body.find(delimiter, pos);
 		if (next == std::string::npos) break;
 
 		std::string content = body.substr(pos, next - pos);
-		// Eliminar CRLF final del contenido si existe
 		if (!content.empty() && content.substr(content.size()-2) == "\r\n") {
 			content.erase(content.size()-2);
 		}
@@ -348,32 +338,37 @@ std::vector<Part>	HttpReceive::parseMultipart(const std::string& body, const std
 		parts.push_back(p);
 		start = next;
 	}
-	return (parts);
+	this->parts = parts;
 }
 
-void HttpReceive::parseChunkedBody() {
+bool HttpReceive::parseChunkedBody() {
 
     size_t pos = 0;
     std::string new_body;
+	unsigned long total_bytes  = 0;
 
     while (true) {
 
-        size_t crlf_pos = _post_body.find("\r\n", pos);
+        size_t crlf_pos = this->_post_body.find("\r\n", pos);
         if (crlf_pos == std::string::npos)
             break ;
 
-        std::string hex_str = _post_body.substr(pos, crlf_pos - pos);
+        std::string hex_str = this->_post_body.substr(pos, crlf_pos - pos);
         unsigned long chunk_size = strtoul(hex_str.c_str(), NULL, 16);
+		total_bytes += chunk_size;
+		if (total_bytes > this->_server.getClientMaxBodySize()) {
+			return (false);
+		}
         pos = crlf_pos + 2;
 
         if (chunk_size == 0) {
             break;
         }
 
-        if (pos + chunk_size  > _post_body.size())
+        if (pos + chunk_size  > this->_post_body.size())
             break;
 
-        new_body.append(_post_body, pos, chunk_size);
+        new_body.append(this->_post_body, pos, chunk_size);
 
         pos += chunk_size + 2;
     }
@@ -382,6 +377,7 @@ void HttpReceive::parseChunkedBody() {
     std::ostringstream oss;
     oss << _post_body.size();
     this->_headers["Content-Length"] = oss.str();
+	return (true);
 }
 
 

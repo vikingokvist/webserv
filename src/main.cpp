@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 					continue ;
 				}
 				else if (status == RECV_INCOMPLETE) {
-					pd._start_time = std::time(0);
+					pd._current_time = std::time(0);
 					continue ;
 				}
 				else if (status == RECV_HEADER_COMPLETE && !pd.client->saveRequest()) {
