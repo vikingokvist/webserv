@@ -1,8 +1,8 @@
 
 
-- Añadir DELETE DE jaime y compprobar quue no se pueda hacer ../
+- Añadir DELETE DE jaime y compprobar quue no se pueda hacer ../  ----> :)
 
-- Comprobar que no se pueda borrar otro archivo
+- Comprobar que no se pueda borrar otro archivo   ----> :)
 
 - change errno checking (remove while loop)
 

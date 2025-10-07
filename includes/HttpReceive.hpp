@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpReceive.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaimesan <jaimesan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/06 12:29:30 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/07 13:08:54 by jaimesan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -63,6 +63,7 @@ class HttpReceive {
 		bool								_is_cgi_script;
 		bool								_is_redirect;
 		bool								_headers_parsed;
+		
 
 		typedef void						(HttpReceive::*Handler)();
 		
