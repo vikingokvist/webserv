@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/08 12:52:05 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/08 12:53:53 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -116,7 +116,7 @@ class HttpReceive {
 		void								parseMultipart(const std::string& body, const std::string& boundary);
 		bool								parseChunkedBody(std::string& _body_recv);
 
-		
+
 		void								sendGetResponse();
 		void								sendPostResponse();
 		void								sendDeleteResponse();

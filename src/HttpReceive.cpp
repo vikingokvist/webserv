@@ -42,6 +42,7 @@ RecvStatus	HttpReceive::receiveRequest() {
 			size_t header_end_pos = _request_parse.find("\r\n\r\n");
 			if (header_state == H_INCOMPLETE && header_end_pos != std::string::npos) {
 				
+				
 				if (!parseHeader(_request_parse.substr(0, header_end_pos)))
 					return (RECV_ERROR);
 				header_state = H_COMPLETE;
@@ -66,10 +67,10 @@ RecvStatus	HttpReceive::receiveRequest() {
 			break ;
         }
     }
-	if (header_state == H_COMPLETE &&  body_state == B_INCOMPLETE && body_type == CHUNKED)
+	if (header_state == H_COMPLETE &&  body_state == B_INCOMPLETE && body_type == CHUNKED) {
 		return (RECV_INCOMPLETE);
+	}
 	if (body_type != CHUNKED && !_request_parse.empty()) {
-		
 		_body_complete = _request_parse;
 	}
 	if (_headers.find("Content-Type") != _headers.end() && _headers["Content-Type"] == "multipart/form-data") {
@@ -145,11 +146,13 @@ void HttpReceive::resetForNextRequest() {
     parts.clear();
     if (_file.is_open()) _file.close();
     _full_path.clear();
-    _request_complete.clear();
-    _post_body.clear();
+    _request_parse.clear();
+    _body_complete.clear();
     _is_cgi_script = false;
     _is_redirect = false;
-    _headers_parsed = false;
+    header_state = H_INCOMPLETE;
+	body_state = B_INCOMPLETE;
+	body_type = UNSET;
     _best_match = -1;
 }
 

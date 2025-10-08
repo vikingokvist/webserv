@@ -1,20 +1,2 @@
 
 
-- Añadir DELETE DE jaime y compprobar quue no se pueda hacer ../
-
-- Comprobar que no se pueda borrar otro archivo
-
-- change errno checking (remove while loop)
-
-- check for body size while reading
-- (chunked request sum up actual data not header)
-- (multipart sum up even boundaries as body size)
-- (chunked requests: count \r\n but not 0\r\n\r\n)
-
-- if methods NOT declared, dont allow for ANY
-
-- autoindex: if index not declared in a location 
-    (or it is but cant open)
-    and it cannot find the server indexfile.html inside that location, 
-    do autoindex.
-
