@@ -12,12 +12,17 @@ void		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
 	oss << "HTTP/1.1 200 OK\r\n";
 	oss << "Content-Type: " << getContentType(_request.getFullPath()) << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
-	oss << "Connection: close\r\n\r\n";
+
+	std::string connection_header = _request.getHeader("Connection");
+    if (connection_header == "keep-alive")
+		oss << "Connection: keep-alive\r\n\r\n";
+    else
+		oss << "Connection: close\r\n\r\n";
+	
 	oss << body;
 
 	std::string response = oss.str();
 	send(fd, response.c_str(), response.size(), 0);
-	close(fd);
 }
 
 void		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
@@ -30,11 +35,15 @@ void		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
 	oss << "HTTP/1.1 303 See Other\r\n";
 	oss << "Location: "<< _request.getHeader("Path") << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
-	oss << "Connection: close\r\n\r\n";
+	std::string connection_header = _request.getHeader("Connection");
+    if (connection_header == "keep-alive")
+		oss << "Connection: keep-alive\r\n\r\n";
+    else
+		oss << "Connection: close\r\n\r\n";
+	oss << body;
 
 	std::string response = oss.str();
-	send(fd, response.c_str(), response.size(), 0);
-	close(fd);
+	send(fd, response.c_str(), response.size(), 0);;
 }
 
 void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
@@ -45,12 +54,15 @@ void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
 
     std::ostringstream oss;
     oss << "HTTP/1.1 204 No Content\r\n";
-    oss << "Connection: close\r\n\r\n";
+    std::string connection_header = _request.getHeader("Connection");
+    if (connection_header == "keep-alive")
+		oss << "Connection: keep-alive\r\n\r\n";
+    else
+		oss << "Connection: close\r\n\r\n";
 	oss << body;
 
 	std::string response = oss.str();
 	send(fd, response.c_str(), response.size(), 0);
-	close(fd);
 }
 
 void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_match) {
@@ -59,7 +71,7 @@ void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_
 	std::ostringstream	oss;
 	int					error_code = _request.getServer().getRedirectCode(best_match);
 	std::string			url_or_loc = _request.getServer().getRedirectUrl(best_match);
-
+   	std::string			connection_header = _request.getHeader("Connection");
 	
 
 	if (url_or_loc.empty() || (!url_or_loc.empty() && error_code != 301 && error_code != 302)) {
@@ -68,16 +80,17 @@ void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_
 	}
 	else if (!url_or_loc.empty() && (error_code == 301 || error_code  == 302)) {
 
-    	oss << "HTTP/1.1 " << error_code << getStatusMsg(error_code) << "\r\n"
-    		<< "Location: " << url_or_loc << "\r\n"
-    		<< "Content-Length: " << 0 << "\r\n"
-    		<< "Connection: close\r\n"
-			<< "\r\n";
+    	oss << "HTTP/1.1 " << error_code << getStatusMsg(error_code) << "\r\n";
+    	oss << "Location: " << url_or_loc << "\r\n";
+    	oss << "Content-Length: " << 0 << "\r\n";
+		if (connection_header == "keep-alive")
+			oss << "Connection: keep-alive\r\n\r\n";
+		else
+			oss << "Connection: close\r\n\r\n";
+		oss << "\r\n";
 	}
     response = oss.str();
 	::send(fd, response.c_str(), response.size(), 0);
-    ::close(fd);
-
 }
 
 void		HttpSend::sendAutoResponse(int fd, HttpReceive& _request, const std::string &direction_path) {
@@ -119,7 +132,11 @@ void		HttpSend::sendAutoResponse(int fd, HttpReceive& _request, const std::strin
 	response << "HTTP/1.1 200 OK\r\n";
 	response << "Content-Type: text/html\r\n";
 	response << "Content-Length: " << bodyStr.size() << "\r\n";
-	response << "Connection: close\r\n\r\n";
+    std::string connection_header = _request.getHeader("Connection");
+    if (connection_header == "keep-alive")
+		response << "Connection: keep-alive\r\n\r\n";
+    else
+		response << "Connection: close\r\n\r\n";
 	response << bodyStr;
 
 	send(fd, response.str().c_str(), response.str().size(), 0);
@@ -210,11 +227,20 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 		while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
 			cgi_output.append(buffer, n);
 		close(pipe_child[0]);
-		
-		std::string http_response = "HTTP/1.1 200 OK\r\n";
-		http_response += cgi_output;
+	
+
+		std::ostringstream oss;
+		oss << "HTTP/1.1 200 OK\r\n";
+		std::string connection_header = _request.getHeader("Connection");
+		if (connection_header == "keep-alive") {
+			oss << "Connection: keep-alive\r\n";
+		} else {
+			oss << "Connection: close\r\n";
+		}
+		oss << cgi_output;
+
+		std::string http_response = oss.str();
 		send(_request.getFd(), http_response.c_str(), http_response.size(), 0);
-		close(_request.getFd());
 
 		int status;
 		waitpid(pid, &status, 0);

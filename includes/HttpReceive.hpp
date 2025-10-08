@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/08 12:42:17 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/08 12:52:05 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -90,7 +90,7 @@ class HttpReceive {
 		RecvStatus							receiveRequest();
 		bool								parseHeader(std::string header_complete);
 		
-		
+		void 								resetForNextRequest();
 		void								setBestMatch(ssize_t _best_match);	
 		void								setFd(int _fd);
 		void								setHeader(std::string index, std::string path);

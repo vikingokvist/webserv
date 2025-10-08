@@ -139,6 +139,20 @@ bool			HttpReceive::parseHeader(std::string header_complete) {
 	return (true);
 }
 
+void HttpReceive::resetForNextRequest() {
+    memset(_request, 0, BUFFER_SIZE);  
+    _headers.clear();
+    parts.clear();
+    if (_file.is_open()) _file.close();
+    _full_path.clear();
+    _request_complete.clear();
+    _post_body.clear();
+    _is_cgi_script = false;
+    _is_redirect = false;
+    _headers_parsed = false;
+    _best_match = -1;
+}
+
 bool			HttpReceive::prepareRequest() {
 	
 	std::string				 req_path   = this->_headers["Path"];
@@ -214,24 +228,24 @@ bool			HttpReceive::checkRequest() {
 
 		if (!isMethodAllowed(server, best_match, this->_headers["Method"]))
 			return (sendError(405));
-		if (isDirectory(root.c_str())) {
-
-			if (this->_full_path.empty() && server.getAutoIndex(best_match) == true)
-				return (sendAutoResponse(root), true);
-			else if (this->_full_path.empty() && server.getAutoIndex(best_match) == false)
-				return (sendError(404));
-			if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
-				return (false);
-			this->_file.open(this->_full_path.c_str());
-			if (!this->_file)
-				return (sendError(404)); 
-			return (true);
+		if (isDirectory(this->_full_path.c_str())) {
+			if (server.getAutoIndex(best_match))
+				return sendAutoResponse(this->_full_path), true;
+			else
+				return sendError(404);
 		}
+		if (this->_full_path.empty() && server.getAutoIndex(best_match) == true)
+			return (sendAutoResponse(root), true);
+		else if (this->_full_path.empty() && server.getAutoIndex(best_match) == false)
+			return (sendError(404));
+			
 		if (!fileExistsAndReadable(this->_full_path.c_str(), 1))
 			return (false);
 		this->_file.open(this->_full_path.c_str());
-		if (!this->_file) 
-			return (sendError(404));
+		if (!this->_file)
+			return (sendError(404)); 
+		return (true);
+
 	}
 	else if (this->_headers.find("Boundary") != this->_headers.end() && this->_headers["Method"] == "POST") {
 		
@@ -260,18 +274,21 @@ bool			HttpReceive::checkRequest() {
 		}
 	}
 	else if (this->_headers["Method"] == "DELETE") {
-
-		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
-			return (sendError(405));
-		if (this->_full_path.find("%2e%2e") != std::string::npos) {
-				return (sendError(403));
-		}
-		if (!fileExistsAndReadable(this->_full_path.c_str(), 0)) {
+		std::string path_to_delete;
+		if (this->_headers.find("Upload Store") != this->_headers.end()) {
+			std::string filename = this->_headers["Path"].substr(this->_headers["Path"].find_last_of("/") + 1);
+			path_to_delete = this->_headers["Upload Store"] + filename;
+		} else {
 			return (sendError(404));
 		}
-		if (remove(this->_full_path.c_str()) != 0) {
-        	return (sendError(403));
+		if (isMethodAllowed(server, best_match, this->_headers["Method"]) == false)
+			return (sendError(405));
+
+		if (!fileExistsAndReadable(path_to_delete.c_str(), 0)) {
+			return (sendError(404));
 		}
+		if (std::remove(path_to_delete.c_str()) != 0)
+			return sendError(403);
 	}
 	return (true);
 }
@@ -397,7 +414,7 @@ bool			HttpReceive::fileExistsAndReadable(const char* path, int mode) {
 		}
 		return (false);
 	}
-	if (access(path, R_OK) != 0) {
+	if (access(path, W_OK) != 0) {
 
 		if (mode == 1) {
 			sendError(403);

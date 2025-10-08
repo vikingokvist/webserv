@@ -46,6 +46,16 @@ class Servers
             return servers[index];
         };
 
+        void clearServers() {
+            for (size_t i = 0; i < servers.size(); ++i) {
+                int sock = servers[i].getSocket(i);
+                if (sock > 0) {
+                    close(sock);
+                }
+            }
+            servers.clear();
+        }
+
         size_t  size() const {return (servers.size());};
 };
 
