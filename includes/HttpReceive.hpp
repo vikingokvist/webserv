@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/07 15:58:52 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/08 12:42:17 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,6 +48,14 @@ enum RecvStatus
 	RECV_BODY_COMPLETE
 };
 
+enum HeaderStatus {H_INCOMPLETE, H_COMPLETE};
+
+enum BodyStatus {B_INCOMPLETE, B_COMPLETE};
+
+
+enum BodyTransferType {UNSET, PLAIN, CHUNKED, MULTIPART};
+
+
 class HttpReceive {
 	
 	private:
@@ -60,14 +68,15 @@ class HttpReceive {
 		ServerWrapper&						_server;
 		ssize_t								_best_match;
 		
-		std::string							_request_complete;
-		std::string							_header_complete;
+		
+		std::string							_request_parse;
 		std::string							_body_complete;
-		bool								_header_is_complete;
-		bool								_body_is_complete;
-		bool								_is_chunked_data;
+		HeaderStatus						header_state;
+		BodyStatus							body_state;
+		BodyTransferType					body_type;
 		unsigned long						_total_bytes;
 		
+	
 		bool								_is_cgi_script;
 		bool								_is_redirect;
 
@@ -79,7 +88,7 @@ class HttpReceive {
 	
 		bool								prepareRequest();
 		RecvStatus							receiveRequest();
-		bool								parseHeader();
+		bool								parseHeader(std::string header_complete);
 		
 		
 		void								setBestMatch(ssize_t _best_match);	
