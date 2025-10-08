@@ -12,17 +12,17 @@ class Servers
     private:
         ConfigParser                        parser;
         std::vector<ServerWrapper>          servers;
-
-
+        
+        
     public:
-        Servers() {};
+        Servers() {}
 
         Servers(const Servers& src) {*this = src;};
-
+        
         Servers& operator=(const Servers& src) {(void)src; return (*this);};
-
+        
         ~Servers() {};
-
+        
         Servers(const std::string& filename) : parser(filename) {
             const std::vector<ServerConfig>& configs = parser.getServers();
             for (size_t i = 0; i < configs.size(); ++i) {

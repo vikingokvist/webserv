@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete File</title>
+    <link rel="stylesheet" href="delete.css">
+</head>
+<body>
+    <header class="top-bar">
+        <a href="../index.html" class="back-button">← Back</a>
+        <h1 class="title">Delete File</h1>
+    </header>
+
+    <main class="container">
+        <h1>Delete a File</h1>
+        <p>Enter the filename you want to delete from the server:</p>
+        <input type="text" id="filename" placeholder="Enter filename" required>
+        <button id="deleteBtn" class="delete-btn">Delete</button>
+        <p id="result" style="margin-top: 20px; color: red;"></p>
+    </main>
+
+    <script>
+        const btn = document.getElementById('deleteBtn');
+        const result = document.getElementById('result');
+
+        btn.addEventListener('click', () => {
+            const filename = document.getElementById('filename').value.trim();
+            if (!filename) {
+                result.textContent = "Please enter a filename.";
+                return;
+            }
+
+            // Send DELETE request directly to the file path
+            fetch(`../upload/upload_store/${filename}`, {
+                method: 'DELETE'
+            })
+            .then(res => {
+                if (res.ok) {
+                    result.style.color = 'green';
+                    result.textContent = `File "${filename}" deleted successfully.`;
+                } else {
+                    result.style.color = 'red';
+                    result.textContent = `Failed to delete "${filename}". Status: ${res.status}`;
+                }
+            })
+            .catch(err => {
+                result.style.color = 'red';
+                result.textContent = `Error: ${err}`;
+            });
+        });
+    </script>
+</body>
+</html>

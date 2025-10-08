@@ -11,7 +11,7 @@ Connection::Connection(const Connection& src) {*this = src;}
 
 Connection& Connection::operator=(const Connection& src) {(void)src;return (*this);};
 
-Connection::~Connection() {}
+Connection::~Connection() {if (epoll_fd >= 0) close(epoll_fd);}
 
 
 void            Connection::SetupAllServers(Servers& servers) {
@@ -80,6 +80,7 @@ void                Connection::populateServerPollData(int server_index, int lis
     pd.is_listener = true;
     pd.server_index = server_index;
     pd.client = NULL;
+    pd.client_allocated = false;
     this->fd_map[listen_fd] = pd;
 }
 
@@ -121,6 +122,7 @@ void                Connection::populateClientPollData(Servers& servers, PollDat
     client_pd.is_listener = false;
     client_pd.server_index = pd.server_index;
     client_pd.client = new HttpReceive(servers[pd.server_index]);
+    client_pd.client_allocated = true;
     client_pd.client->setFd(client_fd); 
     this->fd_map[client_fd] = client_pd;
 }
@@ -163,9 +165,10 @@ void            Connection::removeClient(PollData& pd) {
         epoll_ctl(getEpollFd(), EPOLL_CTL_DEL, client_fd, NULL);
         close(client_fd);
     }
-    delete pd.client;
+    if (pd.client_allocated)
+        delete pd.client;
     pd.client = NULL;
-
+    pd.client_allocated = false;
     this->fd_map.erase(client_fd);
 }
 

@@ -29,6 +29,7 @@ struct PollData
     int             _start_time;
     int             _current_time;
     bool            client_time_out;
+    bool            client_allocated;
 
     PollData() : fd(-1), server_index(0), is_listener(false), client(NULL) {}
     PollData(int _fd, size_t _i, bool _l) : fd(_fd), server_index(_i), is_listener(_l), client(NULL) {}
@@ -58,7 +59,6 @@ class Connection : public Servers
         Connection& operator=(const Connection& src);
         ~Connection();
 
-        
         
         int                             acceptClient(Servers& servers, int fd, PollData &pd);
         void                            removeClient(PollData& pd);
