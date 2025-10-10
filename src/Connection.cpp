@@ -1,4 +1,5 @@
 #include "../includes/Connection.hpp"
+#include "../includes/Logger.hpp"
 
 Connection::Connection(Servers& servers) : events(MAX_EVENTS)  {
 
@@ -31,7 +32,6 @@ void            Connection::SetupAllServers(Servers& servers) {
                       servers[i].getHost(), AF_INET, servers[i].getMaxClientSize());
 			servers[i].bindAndListen();
 			servers[i].addSocket(servers[i].getTheSocket());
-			std::cout << "✓ Server listening on " << ip << ":" << port << std::endl;
 		}
     }
 }
@@ -48,7 +48,6 @@ void              Connection::createEpollInstance() {
 
 void              Connection::populateSockets(Servers& servers) {
 
-    int server_index = 0;
     for (size_t i = 0; i < servers.size(); i++) {
 
         for (size_t j = 0; j < servers[i].getSocketsSize(); j++) {
@@ -56,27 +55,9 @@ void              Connection::populateSockets(Servers& servers) {
             int listen_fd = servers[i].getSocket(j);
             setNonBlocking(listen_fd);
             addServerEpollEvent(listen_fd);
-            populateServerPollData(i, listen_fd);
-            printAddServer(server_index, servers[i], listen_fd);
-            server_index++;
+            populateServerPollData(i, listen_fd, servers[i], j);
         }
     }
-}
-
-
-// Server[127.0.0.1:9998] - connected on socket(6)
-void Connection::printAddServer(int server_index, int socket_index, ServerWrapper& server, int listen_fd) {
-
-    std::cout << COLORS[server_index % 8] << "Server[" 
-    << server.getIps(socket_index) << ":" 
-    << server.getPorts(socket_index) << "] - " 
-    << COLOR_RESET << CYAN << "connected on socket("
-    << listen_fd << ")." << COLOR_RESET << std::endl;
-}
-
-void  Connection::printAcceptClient(int client_fd) {
-
-    std::cout << 
 }
 
 void                Connection::addServerEpollEvent(int listen_fd) {
@@ -91,16 +72,23 @@ void                Connection::addServerEpollEvent(int listen_fd) {
     }
 }
 
-void                Connection::populateServerPollData(int server_index, int listen_fd) {
+void                Connection::populateServerPollData(int server_index, int listen_fd, ServerWrapper& server, int j) {
 
     PollData pd;
+    std::ostringstream  oss;
 
-    pd.is_listener = true;
-    pd.server_index = server_index;
-    pd.client = NULL;
-    pd.client_allocated = false;
+    oss << server.getPorts(j);
     pd.fd = listen_fd;
+    pd.ip_port = "[" + server.getIps(j) + ":" + oss.str() + "] - ";
+    pd.server_index = server_index;
+    pd.is_listener = true;
+    pd.client = NULL;
+    pd._start_time = 0;
+    pd._current_time = 0;
+    pd.client_time_out = false;
+    pd.client_allocated = false;
     this->fd_map[listen_fd] = pd;
+    logger(listen_fd, SERVER_CONNECT, 0);
 }
 
 int            Connection::acceptClient(Servers& servers, int fd, PollData &pd) {
@@ -127,8 +115,6 @@ int            Connection::acceptClient(Servers& servers, int fd, PollData &pd) 
     }
     addClientEpollEvent(client_fd);
     populateClientPollData(servers, pd, client_fd);
-
-    printAcceptClient(fd_map, client_fd);
     return (0);
 }
 
@@ -136,15 +122,18 @@ void                Connection::populateClientPollData(Servers& servers, PollDat
 
     PollData client_pd;
 
+    client_pd.fd = client_fd;
+    client_pd.ip_port = pd.ip_port;
+    client_pd.server_index = pd.server_index;
+    client_pd.is_listener = false;
+    client_pd.client = new HttpReceive(servers[pd.server_index]);
     client_pd._start_time = std::time(0);
     client_pd._current_time = client_pd._start_time;
     client_pd.client_time_out = false;
-    client_pd.is_listener = false;
-    client_pd.server_index = pd.server_index;
-    client_pd.client = new HttpReceive(servers[pd.server_index]);
     client_pd.client_allocated = true;
     client_pd.client->setFd(client_fd); 
     this->fd_map[client_fd] = client_pd;
+    logger(client_fd, CLIENT_CONNECT, 0);
 }
 
 void                Connection::addClientEpollEvent(int client_fd) {
@@ -179,7 +168,7 @@ void            Connection::removeClient(PollData& pd) {
         return ;
     
     int client_fd = pd.client->getFd();
-    
+    logger(client_fd, CLIENT_DISCONNECT, 0);
     if (client_fd != -1) {
         epoll_ctl(getEpollFd(), EPOLL_CTL_DEL, client_fd, NULL);
         close(client_fd);
@@ -200,8 +189,12 @@ void        Connection::removeTimeoutClients(time_t now) {
 	for ( ; it != getFdMap().end(); ++it) {
 
 		PollData &pd = it->second;
-		if (!pd.is_listener ) {
-            printTimeoutClient()
+		if (!pd.is_listener) {
+            int time_elapsed = now - pd._current_time;
+            int time_left = CLIENT_REQUEST_TIME_OUT - time_elapsed;
+            if (time_left < 0)
+                time_left = 0;
+            logger(it->second.fd, CLIENT_TIME_OUT, time_left);
         }
 		if (!pd.is_listener && (now - pd._current_time >= CLIENT_REQUEST_TIME_OUT)) {
 			fds_to_remove.push_back(it->first);
@@ -215,6 +208,9 @@ void        Connection::removeTimeoutClients(time_t now) {
 		}
 	}
 }
+
+
+void            Connection::logger(int target_fd, int flag, int time_left) { Logger::logger(this->fd_map[target_fd], flag, time_left); };
 
 void              Connection::print_epoll_event(const epoll_event &ev) {
     

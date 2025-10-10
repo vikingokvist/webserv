@@ -11,6 +11,7 @@
 /* ************************************************************************** */
 
 #include "../includes/HttpReceive.hpp"
+#include "../includes/Logger.hpp"
 
 HttpReceive::HttpReceive(ServerWrapper& _server) : _server(_server) {
 	
@@ -172,7 +173,7 @@ bool			HttpReceive::prepareRequest() {
 			relative_path.erase(0, 1);
 		this->_full_path = root + relative_path;
 	}
-	printParserHeader();
+	logger(this->_headers, CLIENT_REQUEST);
 	return (true);
 }
 
@@ -451,16 +452,6 @@ ssize_t			HttpReceive::findBestMatch(ServerWrapper& server, std::string req_path
 	return (best_match);
 }
 
-void HttpReceive::printParserHeader(void) {
-	
-	std::cout << "\033[32m -----------[REQUEST]-----------\033[0m" << std::endl << std::endl;
-	std::map<std::string, std::string>::const_iterator it;
-	for (it = this->_headers.begin(); it != this->_headers.end(); ++it) {
-		std::cout << "\033[32m[" << it->first << "] = " << it->second << "\033[0m" << std::endl;
-	}
-	std::cout << "\033[32m--------------------------------\033[0m" << std::endl;
-}
-
 bool		HttpReceive::sendError(size_t error_code) {
 
 	static Handler handlers[506] = {0};
@@ -489,6 +480,8 @@ bool		HttpReceive::sendError(size_t error_code) {
 		(this->*handlers[error_code])();
 	return (false);
 }
+
+void			HttpReceive::logger(std::map<std::string, std::string> _headers, int flag) {Logger::logger2(_headers, flag, this->getFd());}
 
 bool			HttpReceive::isRedirection() {return (this->_is_redirect);}
 

@@ -11,24 +11,18 @@
 #include <map>
 #include <exception>
 
-#define MAX_EVENTS 1024
-#define TIME_OUT 1000
-// seconds
-#define CLIENT_REQUEST_TIME_OUT 5
-#define CLIENT_TOTAL_TIME_OUT 20
-
 #include "./Servers.hpp"
 #include "./HttpReceive.hpp"
 
-static int COLOURS[] = {31, 32, 33, 34}
-static int DISCONNECTED = red;
-static int CONNECTED = green;
-static int TIMEOUT = yellow;
-
+#define MAX_EVENTS 1024
+#define TIME_OUT 1000
+#define CLIENT_REQUEST_TIME_OUT 5
+#define CLIENT_TOTAL_TIME_OUT 20
 
 struct PollData
 {
     int             fd;
+    std::string     ip_port;
     size_t          server_index;
 	bool            is_listener;
 	HttpReceive     *client;
@@ -52,7 +46,7 @@ class Connection : public Servers
         void                            populateSockets(Servers& servers);
         void                            createEpollInstance();
         int                             setNonBlocking(int fd);
-        void                            populateServerPollData(int index, int listen_fd);
+        void                            populateServerPollData(int server_index, int listen_fd, ServerWrapper& server, int j);
         void                            addServerEpollEvent(int listen_fd);
         void                            populateClientPollData(Servers& servers, PollData &pd, int client_fd);
         void                            addClientEpollEvent(int client_fd);
@@ -77,6 +71,7 @@ class Connection : public Servers
         const std::map<int, PollData>&  getFdMap() const;
 
         void                            print_epoll_event(const epoll_event &ev);
+        void                            logger(int target_fd, int flag, int time_left);
 
         class EpollInstanceException: public std::exception {public:const char* what() const throw();};
         class AddEpollInstanceException: public std::exception {public:const char* what() const throw();};

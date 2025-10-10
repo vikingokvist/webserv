@@ -2,33 +2,36 @@
 #include "../includes/HttpReceive.hpp"
 #include "../includes/Servers.hpp"
 #include "../includes/Connection.hpp"
+#include "../includes/Logger.hpp"
 
 Servers* servers = NULL;
 Connection* conn = NULL;
 
-void handle_sigint(int sig) {
-
-	std::cout << "\nSeñal SIGINT recibida. Limpiando recursos...\n" << std::endl;
+void	handle_sigint(int sig) {
 
     if (conn) {
 
-		std::map<int, PollData>::iterator it = conn->getFdMap().begin();
+		std::vector<int> fds_to_remove;
+    	std::map<int, PollData>::iterator it = conn->getFdMap().begin();
+
 		for ( ; it != conn->getFdMap().end(); ++it) {
-			if (it->second.client != NULL)
+			fds_to_remove.push_back(it->first);
+		}
+		for (size_t i = 0; i < fds_to_remove.size(); i++) {
+			std::map<int, PollData>::iterator it = conn->getFdMap().find(fds_to_remove[i]);
+			if (it != conn->getFdMap().end()) {
 				conn->removeClient(it->second);
+			}
 		}
 		delete conn;
 		conn = NULL;
     }
-
     if (servers) {
-        servers->clearServers();
+		Logger::printSignalReceived(*servers);
 		delete servers;
 		servers = NULL;
     }
-
 	(void)sig;
-	std::cout << "Recursos liberados. Saliendo.\n" << std::endl;
 }
 
 int	main(int argc, char **argv)
@@ -48,8 +51,7 @@ int	main(int argc, char **argv)
 
 			int ready_fds = epoll_wait(conn->getEpollFd(), conn->getEpollEvents(), MAX_EVENTS, TIME_OUT);
 			if (ready_fds == -1) {
-				std::cerr << "epoll_wait failed: " << strerror(errno) << std::endl;
-				throw (std::runtime_error("LOL"));
+				break ;
 			}
 
 			time_t now = std::time(0);

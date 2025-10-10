@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/08 16:02:42 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/10 14:46:26 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -109,9 +109,10 @@ class HttpReceive {
 		bool								isCgiScript();
 		bool								isMethodAllowed(ServerWrapper& server, ssize_t best_match, std::string& method);		
 		bool								fileExistsAndReadable(const char* path, int mode);
-		void								printParserHeader(void);
 		void								parseMultipart(const std::string& body, const std::string& boundary);
 		bool								parseChunkedBody(std::string& _body_recv);
+
+		void								logger(std::map<std::string, std::string> _headers, int flag);
 
 
 		void								sendGetResponse();
