@@ -2,6 +2,50 @@
 #include "../includes/HttpReceive.hpp" 
 
 
+std::string parseSessionId(const std::string &cookie_header) {
+    std::string key = "session_id=";
+    std::size_t pos = cookie_header.find(key);
+    if (pos == std::string::npos)
+        return "";
+    pos += key.size();
+    std::size_t end = cookie_header.find(";", pos);
+    if (end == std::string::npos)
+        end = cookie_header.size();
+    return cookie_header.substr(pos, end - pos);
+}
+
+std::string generateSessionId() {
+    static bool seeded = false;
+    if (!seeded) {
+        std::srand(std::time(0));
+        seeded = true;
+    }
+    std::ostringstream oss;
+    for (int i = 0; i < 16; ++i) {
+        int r = std::rand() % 256;
+        oss << std::hex << std::setw(2) << std::setfill('0') << r;
+    }
+    return oss.str();
+}
+
+std::string ensureSession(HttpReceive& request, ServerWrapper& server, bool& is_new_session) {
+    std::string cookie_header = request.getHeader("Cookie");
+    std::string client_session_id = parseSessionId(cookie_header);
+
+    is_new_session = false;
+
+	if (client_session_id.empty() || !server.hasSession(client_session_id)) {
+		std::string new_session_id = generateSessionId();
+		server.addSession(new_session_id);
+		is_new_session = true;
+		return new_session_id;
+	} else {
+		return client_session_id;
+	}
+	
+} 
+
+
 void		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
@@ -12,7 +56,29 @@ void		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
 	oss << "HTTP/1.1 200 OK\r\n";
 	oss << "Content-Type: " << getContentType(_request.getFullPath()) << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
+  // --- Manejo de cookies---
+    ServerWrapper& server = _request.getServer();
+	std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+	std::string session_id;
 
+	bool user_accepts_cookies = false;
+	if (!cookies_allowed.empty() && cookies_allowed != "false")
+		user_accepts_cookies = true;
+
+	if (user_accepts_cookies) {
+		bool is_new_session = false;
+		session_id = ensureSession(_request, server, is_new_session);
+		if (is_new_session) {
+			oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+		}
+	}
+
+	// PARA el timpo del usuario
+/* 	if (server.hasSession(session_id)) {
+		double duration = server.getSessionDuration(session_id);
+		std::cout << ">> Sesión " << session_id
+				<< " activa por " << duration << " segundos." << std::endl;
+	} */
 	std::string connection_header = _request.getHeader("Connection");
     if (connection_header == "keep-alive")
 		oss << "Connection: keep-alive\r\n\r\n";
@@ -35,6 +101,22 @@ void		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
 	oss << "HTTP/1.1 303 See Other\r\n";
 	oss << "Location: "<< _request.getHeader("Path") << "\r\n";
 	oss << "Content-Length: " << body.size() << "\r\n";
+
+	ServerWrapper& server = _request.getServer();
+	std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+	std::string session_id;
+
+	bool user_accepts_cookies = false;
+	if (!cookies_allowed.empty() && cookies_allowed != "false")
+		user_accepts_cookies = true;
+
+	if (user_accepts_cookies) {
+		bool is_new_session = false;
+		session_id = ensureSession(_request, server, is_new_session);
+		if (is_new_session) {
+			oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+		}
+	}
 	std::string connection_header = _request.getHeader("Connection");
     if (connection_header == "keep-alive")
 		oss << "Connection: keep-alive\r\n\r\n";
@@ -54,6 +136,22 @@ void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
 
     std::ostringstream oss;
     oss << "HTTP/1.1 204 No Content\r\n";
+
+	ServerWrapper& server = _request.getServer();
+	std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+	std::string session_id;
+
+	bool user_accepts_cookies = false;
+	if (!cookies_allowed.empty() && cookies_allowed != "false")
+		user_accepts_cookies = true;
+
+	if (user_accepts_cookies) {
+		bool is_new_session = false;
+		session_id = ensureSession(_request, server, is_new_session);
+		if (is_new_session) {
+			oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+		}
+	}
     std::string connection_header = _request.getHeader("Connection");
     if (connection_header == "keep-alive")
 		oss << "Connection: keep-alive\r\n\r\n";
@@ -76,6 +174,21 @@ void		HttpSend::sendHeadResponse(int fd, HttpReceive& _request) {
     oss << "Content-Type: " << getContentType(_request.getFullPath()) << "\r\n";
     oss << "Content-Length: " << file_size << "\r\n";
 
+	ServerWrapper& server = _request.getServer();
+	std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+	std::string session_id;
+
+	bool user_accepts_cookies = false;
+	if (!cookies_allowed.empty() && cookies_allowed != "false")
+		user_accepts_cookies = true;
+
+	if (user_accepts_cookies) {
+		bool is_new_session = false;
+		session_id = ensureSession(_request, server, is_new_session);
+		if (is_new_session) {
+			oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+		}
+	}
 	std::string connection_header = _request.getHeader("Connection");
     if (connection_header == "keep-alive")
 		oss << "Connection: keep-alive\r\n\r\n";
@@ -104,6 +217,21 @@ void		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_
     	oss << "HTTP/1.1 " << error_code << getStatusMsg(error_code) << "\r\n";
     	oss << "Location: " << url_or_loc << "\r\n";
     	oss << "Content-Length: " << 0 << "\r\n";
+		ServerWrapper& server = _request.getServer();
+		std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+		std::string session_id;
+
+		bool user_accepts_cookies = false;
+		if (!cookies_allowed.empty() && cookies_allowed != "false")
+			user_accepts_cookies = true;
+
+		if (user_accepts_cookies) {
+			bool is_new_session = false;
+			session_id = ensureSession(_request, server, is_new_session);
+			if (is_new_session) {
+				oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+			}
+		}
 		if (connection_header == "keep-alive")
 			oss << "Connection: keep-alive\r\n\r\n";
 		else
@@ -153,6 +281,21 @@ void		HttpSend::sendAutoResponse(int fd, HttpReceive& _request, const std::strin
 	response << "HTTP/1.1 200 OK\r\n";
 	response << "Content-Type: text/html\r\n";
 	response << "Content-Length: " << bodyStr.size() << "\r\n";
+	ServerWrapper& server = _request.getServer();
+	std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+	std::string session_id;
+
+	bool user_accepts_cookies = false;
+	if (!cookies_allowed.empty() && cookies_allowed != "false")
+		user_accepts_cookies = true;
+
+	if (user_accepts_cookies) {
+		bool is_new_session = false;
+		session_id = ensureSession(_request, server, is_new_session);
+		if (is_new_session) {
+			response << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+		}
+	}
     std::string connection_header = _request.getHeader("Connection");
     if (connection_header == "keep-alive")
 		response << "Connection: keep-alive\r\n\r\n";
@@ -252,6 +395,21 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 
 		std::ostringstream oss;
 		oss << "HTTP/1.1 200 OK\r\n";
+		ServerWrapper& server = _request.getServer();
+		std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+		std::string session_id;
+
+		bool user_accepts_cookies = false;
+		if (!cookies_allowed.empty() && cookies_allowed != "false")
+			user_accepts_cookies = true;
+
+		if (user_accepts_cookies) {
+			bool is_new_session = false;
+			session_id = ensureSession(_request, server, is_new_session);
+			if (is_new_session) {
+				oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+			}
+		}
 		std::string connection_header = _request.getHeader("Connection");
 		if (connection_header == "keep-alive") {
 			oss << "Connection: keep-alive\r\n";
@@ -294,12 +452,27 @@ void        HttpSend::sendErr(int fd, HttpReceive& _request, int error_code) {
             body = buf.str();
     }
 
+    // --- Manejo de cookies---
+    ServerWrapper& server = _request.getServer();
+	std::string cookies_allowed = _request.getHeader("X-Cookies-Allowed");
+
+	bool user_accepts_cookies = false;
+	if (!cookies_allowed.empty() && cookies_allowed != "false")
+		user_accepts_cookies = true;
+
     std::ostringstream oss;
     oss << "HTTP/1.1 " << error_code << getStatusMsg(error_code) << "\r\n"
     	<< "Content-Type: text/html\r\n"
     	<< "Content-Length: " << body.size() << "\r\n"
-    	<< "Connection: close\r\n\r\n"
-    	<< body;
+    	<< "Connection: close\r\n\r\n";
+		if (user_accepts_cookies) {
+			bool is_new_session = false;
+			std::string session_id = ensureSession(_request, server, is_new_session);
+			if (is_new_session) {
+				oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+			}
+		}
+    	oss << body;
 
     response = oss.str();
     ::send(fd, response.c_str(), response.size(), 0);

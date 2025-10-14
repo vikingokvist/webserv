@@ -4,6 +4,7 @@
 
 #include "./webserv.hpp"
 #include "./ConfigParser.hpp"
+#include <ctime>
 
 struct Endpoint
 {
@@ -12,6 +13,12 @@ struct Endpoint
 
     Endpoint() {}
     Endpoint(const std::string &i, uint16_t p) : ip(i), port(p) {}
+};
+
+struct Session
+{
+	std::string session_id;
+    int         _current_time;
 };
 
 class ServerWrapper
@@ -29,6 +36,7 @@ class ServerWrapper
 		std::vector<LocationConfig>         _locations;
         std::vector<Endpoint>               endpoints;
         std::vector<int>                    sockets;
+        std::map<std::string, Session>      _session;
 
     public:
 
@@ -38,7 +46,26 @@ class ServerWrapper
         ServerWrapper& operator=(const ServerWrapper& src);
         ~ServerWrapper();
 
+ void addSession(const std::string& session_id) {
+            Session s;
+            s.session_id = session_id;
+            s._current_time = std::time(0);
+            _session[session_id] = s;
+        }
 
+        bool hasSession(const std::string& id) {
+            return _session.find(id) != _session.end();
+        }
+
+        double getSessionDuration(const std::string& session_id) {
+            std::map<std::string, Session>::iterator it = _session.find(session_id);
+            if (it == _session.end())
+                return -1.0;
+
+            time_t now = std::time(NULL);
+            double seconds = difftime(now, it->second._current_time);
+            return seconds;
+        }
 
         std::string                         getIps(size_t ip_index) const;
         size_t                              getIpCount() const;

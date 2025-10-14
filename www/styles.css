@@ -168,3 +168,24 @@ pre {
 .login-btn {
 	margin-top: 25px;
 }
+
+.cookie-banner {
+    display: none;
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    background: #222;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.cookie-banner button {
+    margin: 0 10px;
+    padding: 5px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}

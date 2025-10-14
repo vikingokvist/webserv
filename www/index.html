@@ -6,7 +6,13 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div id="cookie-banner" class="cookie-banner">
+        <p>Este sitio usa cookies para mejorar tu experiencia. ¿Aceptas las cookies?</p>
+        <button id="accept-cookies">Aceptar</button>
+        <button id="reject-cookies">Rechazar</button>
+    </div>
 
+    <!-- Top black bar -->
     <header class="top-bar">
         <h1 class="title">Web Serv Tester</h1>
     </header>
@@ -24,4 +30,30 @@
         </div>
     </main>
 </body>
+
+    <script>
+    const cookiesAllowed = localStorage.getItem("cookiesAccepted") === "true";
+
+    fetch("/", {
+        headers: { "X-Cookies-Allowed": cookiesAllowed ? "true" : "false" }
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+    if (!localStorage.getItem("cookiesAccepted")) {
+        document.getElementById("cookie-banner").style.display = "block";
+    }
+
+    document.getElementById("accept-cookies").onclick = function() {
+        localStorage.setItem("cookiesAccepted", "true");
+        document.getElementById("cookie-banner").style.display = "none";
+    };
+
+    document.getElementById("reject-cookies").onclick = function() {
+        alert("No podrás iniciar sesión ni mantener tu sesión activa sin cookies.");
+        document.getElementById("cookie-banner").style.display = "none";
+    };
+    });
+    </script>
+    </script>
+
 </html>

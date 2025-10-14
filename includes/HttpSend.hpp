@@ -18,8 +18,10 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <fstream>
+#include <iomanip>
 
 class HttpReceive;
+struct Session;
 
 class HttpSend {
 	
