@@ -88,6 +88,7 @@ int		main(int argc, char **argv)
 							}
 							continue;
 						}
+						pd._current_time = std::time(0);
 						conn->modifyEpollEvent(fd, EPOLLOUT); 
 					}
     	        }

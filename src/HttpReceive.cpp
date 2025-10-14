@@ -29,7 +29,7 @@ HttpReceive::~HttpReceive() {}
 
 RecvStatus	HttpReceive::receiveRequest() {
 
-    char	buffer[8192];
+    char	buffer[1];
     int		bytes_received;
 	
     while (true) {

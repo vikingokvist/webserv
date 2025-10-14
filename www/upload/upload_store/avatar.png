@@ -1,8 +1,0 @@
-<!DOCTYPE html>
-<html>
-<head><title>404 Not Found</title></head>
-<body style="background-color:white; text-align:center; font-family:sans-serif;">
-  <h1 style="color:red;">Error 404</h1>
-  <p style="color:gray;">The site you're trying to reach doesn't exist.</p>
-</body>
-</html>
