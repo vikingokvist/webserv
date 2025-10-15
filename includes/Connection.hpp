@@ -18,18 +18,18 @@
 #define MAX_EVENTS 1024
 #define EPOLL_TIME_OUT 1000
 #define CLIENT_REQUEST_TIME_OUT 5
-#define CLIENT_TOTAL_TIME_OUT 20
+
 
 struct ServerSocket
 {
-    int	                                _fd;                       // Descriptor de socket, se inicializa internamente
-	std::vector<std::string>            _server_name;              // server_name localhost;
-	uint16_t                            _port;                     // listen 9999;
-	in_addr_t                           _host;                     // host 127.0.0.1;
-	sa_family_t                         _sin_family;               // Tipo de socket, normalmente AF_INET
-	unsigned long		                _client_max_body_size;     // client_max_body_size 5;
-	struct sockaddr_in	                _server_adress;            // Se construye con host, puerto y familia
-    std::map<std::string, Session>      _session;                  // cookies
+    int	                                _fd; 
+	std::vector<std::string>            _server_name; 
+	uint16_t                            _port; 
+	in_addr_t                           _host;
+	sa_family_t                         _sin_family;
+	unsigned long		                _client_max_body_size;
+	struct sockaddr_in	                _server_adress;
+    std::map<std::string, Session>      _session;
 };
 
 struct PollData

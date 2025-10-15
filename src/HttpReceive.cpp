@@ -293,12 +293,13 @@ bool	HttpReceive::methodPOST(ServerWrapper &server, size_t best_match) {
 	}
 	else {
 
-		size_t extension_pos = this->_headers["Path"].find(".py");
+		size_t extension_pos = this->_headers["Path"].rfind(".");
 		if (extension_pos != std::string::npos) {
 			std::string file_extension = this->_headers["Path"].substr(extension_pos);
 			for (size_t i = 0; i < server.getCgiExtensionCount(best_match); ++i) {
-				if (file_extension == server.getCgiExtensions(best_match, i))
+				if (file_extension == server.getCgiExtensions(best_match, i)) {
 					this->_is_cgi_script = true;
+				}
 			}
 		}
 	}

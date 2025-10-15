@@ -1,1 +1,3 @@
- - check copy constructos copy correctly, as well as assignment 
+ - check copy constructos copy correctly, as well as assignment
+
+ - 

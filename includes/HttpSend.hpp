@@ -64,7 +64,7 @@ class HttpSend
 
 std::string		getStatusMsg(int error_code);
 std::string		getContentType(const std::string& path);
-std::string		getCookie(HttpReceive& _request);
+std::string		getInterpreter(std::string filename);
 
 #endif
 

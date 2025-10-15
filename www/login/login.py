@@ -100,7 +100,6 @@ def main():
 
     # CGI headers + body
     print("Content-Type: text/html")
-    print(f"Content-Length: {len(html_body.encode('utf-8'))}")
     print()
     print(html_body)
 

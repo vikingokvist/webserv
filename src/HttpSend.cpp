@@ -276,9 +276,10 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 			envp.push_back(const_cast<char*>(env_strings[i].c_str()));
 		envp.push_back(NULL);
 
-		char *argv[] = { (char*)script_file_path.c_str(), NULL };
+		char *argv[] = { (char*)script_file_path.c_str(), NULL};
 		
 		if (execve(script_file_path.c_str(), argv, envp.data()) == -1) {
+
 			close(pipe_parent[0]); close(pipe_parent[1]); close(pipe_child[0]); close(pipe_child[1]);
 			std::cerr << "Child execve() failed: " << strerror(errno) << std::endl;
 			send500(fd, _request);exit(1);
@@ -300,7 +301,18 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 			cgi_output.append(buffer, n);
 		close(pipe_child[0]);
 	
+		size_t header_end = cgi_output.find("\r\n\r\n");
+		if (header_end == std::string::npos)
+			header_end = cgi_output.find("\n\n");
 
+		std::string headers, body;
+		if (header_end != std::string::npos) {
+			headers = cgi_output.substr(0, header_end);
+			body = cgi_output.substr(header_end + (cgi_output[header_end] == '\r' ? 4 : 2));
+		}
+		else
+			body = cgi_output;
+		size_t content_length = body.size();
 		std::ostringstream oss;
 		oss << "HTTP/1.1 200 OK\r\n";
 		if (_request.hasClientCookie()) {
@@ -313,11 +325,11 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 			if (!color.empty())
 				oss << "Set-Cookie: color=" << color << "; Path=/;\r\n";
 		}
+		oss << headers << "\r\nContent-Length: " << content_length << "\r\n\r\n" << body;
     	if (_request.getHeader("Connection") == "keep-alive")
 			oss << "Connection: keep-alive\r\n\r\n";
     	else
 			oss << "Connection: close\r\n\r\n";
-		oss << cgi_output;
 
 		std::string http_response = oss.str();
 		send(_request.getFd(), http_response.c_str(), http_response.size(), 0);
@@ -419,15 +431,4 @@ std::string		getContentType(const std::string& path) {
 		return ("image/png");
 	return ("text/plain");
 }
-
-// std::string		getCookie(HttpReceive& _request) {
-
-// 	bool is_new_session = false;
-// 	std::string session_id = Cookies::ensureSession(_request.getHeader("Cookie"), is_new_session);
-// 	if (is_new_session) {
-// 		return ("Set-Cookie: session_id=" + session_id + "; Path=/; HttpOnly\r\n");
-// 	}
-// 	return "";
-// }
-
 
