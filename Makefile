@@ -7,7 +7,7 @@ RM = rm -rf
 
 SRCS = src/main.cpp src/ConfigParser.cpp  src/ServerWrapper.cpp \
 	src/HttpReceive.cpp src/utils.cpp src/HttpSend.cpp \
-	src/Connection.cpp src/Logger.cpp
+	src/Connection.cpp src/Logger.cpp src/cookies.cpp
 
 OBJS = $(SRCS:.cpp=.o)
 DEPS = $(OBJS:.o=.d)

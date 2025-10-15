@@ -13,9 +13,10 @@
 #include "../includes/HttpReceive.hpp"
 #include "../includes/Logger.hpp"
 
-HttpReceive::HttpReceive(ServerWrapper& _server, std::map<std::string, Session>& _session) : _server(_server) {
-	
-	this->session = _session;
+HttpReceive::HttpReceive(ServerWrapper& _server, std::map<std::string, Session>& session) : _server(_server) {
+
+	this->_session = session;
+	this->user_accepts_cookies = false;
 	this->_is_cgi_script = false;
 	this->_is_redirect = false;
 	this->body_state = B_INCOMPLETE;
@@ -197,6 +198,8 @@ bool			HttpReceive::checkRequest() {
 		return (sendError(413));
 	if (isMissingContentTypeForPost(this->_headers))
 		return (sendError(415));
+	if (clientHasCookiesEnabled(this->_headers))
+			setClientCookie();
 	if (this->_server.getRedirect(getBestMatch()))
 		return (this->_is_redirect = true);
 
@@ -531,7 +534,13 @@ bool		HttpReceive::sendError(size_t error_code) {
 	return (false);
 }
 
+std::map<std::string, Session>&		HttpReceive::getSession() {return (this->_session);}
+
 void			HttpReceive::logger(std::map<std::string, std::string> _headers, int flag) {Logger::logger2(_headers, flag, this->getFd());}
+
+void			HttpReceive::setClientCookie() {this->user_accepts_cookies = true;}
+
+bool			HttpReceive::hasClientCookie() {return (this->user_accepts_cookies);}
 
 bool			HttpReceive::isRedirection() {return (this->_is_redirect);}
 
@@ -543,9 +552,7 @@ int				HttpReceive::getFd() {return (this->_fd);}
 
 char*			HttpReceive::getRequest() {return (this->_request);}
 
-// std::map<std::string, Session>&		HttpReceive::getSession() {return (this->session);}
-
-std::string		HttpReceive::getHeader(std::string index) {return (this->_headers[index]);}
+std::string		HttpReceive::getHeader(std::string index) {if (this->_headers.find(index) != this->_headers.end()) return (this->_headers[index]); else return ("");}
 
 std::ifstream&	HttpReceive::getFile() {return (this->_file);}
 

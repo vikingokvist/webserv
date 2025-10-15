@@ -3,7 +3,6 @@
 
 Connection::Connection(Servers& servers) : events(MAX_EVENTS) {
 
-
     this->epoll_fd =  epoll_create(1);
     if (this->epoll_fd == -1)
         throw (EpollInstanceException());
@@ -101,7 +100,7 @@ void                Connection::populateClientPollData(Servers& servers, PollDat
     client_pd.ip_port = pd.ip_port;
     client_pd.server_index = pd.server_index;
     client_pd.is_listener = false;
-    client_pd.client = new HttpReceive(servers[pd.server_index], server_sockets[pd.server_index]._session);
+    client_pd.client = new HttpReceive(servers[pd.server_index], this->server_sockets[pd.server_index]._session);
     client_pd._start_time = std::time(0);
     client_pd._current_time = client_pd._start_time;
     client_pd.client_time_out = false;

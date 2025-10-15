@@ -36,6 +36,13 @@
 #include <utility>
 #include <climits>
 #include <ctime>
+#include <iomanip>
+
+struct Session
+{
+	std::string     session_id;
+    int             _current_time;
+};
 
 
 std::map<std::string, std::string>	parseUrlEncoded(const std::string& body);
@@ -55,4 +62,11 @@ bool                                isInvalidContentLength(std::map<std::string,
 bool                                isMissingContentLengthForPost(std::map<std::string, std::string> &headers);
 bool                                isContentLengthTooLarge(std::map<std::string, std::string> &headers, size_t max_client_size);
 bool                                isMissingContentTypeForPost(std::map<std::string, std::string> &headers);
+bool                                clientHasCookiesEnabled(std::map<std::string, std::string> &headers);
+void                                addSession(std::map<std::string, Session>& session, const std::string& session_id);
+double                              getSessionDuration(std::map<std::string, Session>& session, const std::string& session_id);    
+std::string                         parseSessionId(const std::string &cookie_header);
+std::string                         generateSessionId();
+std::string                         ensureSession(std::map<std::string, Session>& session, std::string session_id, bool& is_new_session);
+
 #endif

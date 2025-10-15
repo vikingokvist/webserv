@@ -170,5 +170,11 @@ bool	isMissingContentTypeForPost(std::map<std::string, std::string> &headers) {
 	return (false);
 }
 
+bool	clientHasCookiesEnabled(std::map<std::string, std::string> &headers) {
+
+	if (headers.find("X-Cookies-Allowed") != headers.end() && headers["X-Cookies-Allowed"] != "false")
+		return (true);
+	return (false);
+}
 
 

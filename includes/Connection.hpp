@@ -13,18 +13,12 @@
 
 #include "./Servers.hpp"
 #include "./HttpReceive.hpp"
+#include "./webserv.hpp"
 
 #define MAX_EVENTS 1024
 #define EPOLL_TIME_OUT 1000
 #define CLIENT_REQUEST_TIME_OUT 5
 #define CLIENT_TOTAL_TIME_OUT 20
-
-struct Session
-{
-	std::string     session_id;
-    int             _current_time;
-};
-
 
 struct ServerSocket
 {

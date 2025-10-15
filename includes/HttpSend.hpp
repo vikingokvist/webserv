@@ -20,12 +20,12 @@
 #include <fstream>
 #include <iomanip>
 
-// #include "./Cookies.hpp"
 
 class HttpReceive;
 
 
-class HttpSend {
+class HttpSend
+{
 	
 	public:
 		static void sendErr(int fd, HttpReceive& _request, int error_code);

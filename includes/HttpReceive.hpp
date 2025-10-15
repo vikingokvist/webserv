@@ -6,7 +6,7 @@
 /*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/14 22:27:21 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/15 13:21:00 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,6 @@
 #include "./HttpSend.hpp"
 #include "./ServerWrapper.hpp"
 #include "./ConfigParser.hpp"
-#include "./Cookies.hpp"
 #include <iostream>
 #include <map>
 #include <iosfwd>
@@ -58,7 +57,6 @@ struct Session;
 class HttpReceive {
 			
 	private:
-	
 		int									_fd;
 		char								_request[BUFFER_SIZE];
 		std::map<std::string, std::string>	_headers;
@@ -75,12 +73,13 @@ class HttpReceive {
 		unsigned long						_total_bytes;
 		bool								_is_cgi_script;
 		bool								_is_redirect;
-		std::map<std::string, Session>      session;
+		bool								user_accepts_cookies;
+		std::map<std::string, Session>		_session;
 		typedef void						(HttpReceive::*Handler)();
 		
 		
 	public:
-		HttpReceive(ServerWrapper& _server, std::map<std::string, Session>& _session);
+		HttpReceive(ServerWrapper& _server, std::map<std::string, Session>& session);
 		~HttpReceive();
 		bool								prepareRequest();
 		RecvStatus							receiveRequest();
@@ -93,9 +92,13 @@ class HttpReceive {
 		std::string							getHeader(std::string index);
 		std::ifstream&						getFile();
 		ServerWrapper&						getServer();
-		// std::map<std::string, Session>&		getSession();
 		size_t								getPostBodySize();
 		std::string							getPostBody();
+
+		std::map<std::string, Session>&		getSession();
+		void								setClientCookie();
+		bool								hasClientCookie();
+		
 		void								sendGetResponse();
 		void								sendPostResponse();
 		void								sendDeleteResponse();
@@ -143,16 +146,7 @@ class HttpReceive {
 		void								logger(std::map<std::string, std::string> _headers, int flag);
 		void								setHeader(std::string index, std::string path);
 		void								setFullPath(const std::string& full_path);
-
-		void								addSession(); 
-        bool								hasSession();
-        double								getSessionDuration(); 
-        std::string							parseSessionId();
-        std::string							generateSessionId();
-        std::string							ensureSession();
-		
-
-		
+	
 };
 
 #endif
