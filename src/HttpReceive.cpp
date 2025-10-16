@@ -504,7 +504,14 @@ ssize_t			HttpReceive::findBestMatch(ServerWrapper& server, std::string req_path
 }
 
 bool		HttpReceive::sendError(size_t error_code) {
+	PollData &pd = _conn->getFdMap()[_fd];
+	pd.has_error = true;
+	pd.error_code = error_code;
+	_conn->modifyEpollEvent(_fd, EPOLLOUT); 
+	return(false);
+}
 
+bool	HttpReceive::sendOutErr(size_t error_code) {
 	static Handler handlers[506] = {0};
 
 	if (handlers[0] == 0) {

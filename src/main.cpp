@@ -80,7 +80,6 @@ int		main(int argc, char **argv)
 					if (status == RECV_PAYLOAD_TOO_LARGE_ERROR || status == RECV_ERROR || status == RECV_CLOSED) {
 						if (status == RECV_PAYLOAD_TOO_LARGE_ERROR) {
 							conn->removeClient(pd);
-							pd.client->sendError(413);
 						}
 						continue ;
 					}
@@ -89,9 +88,8 @@ int		main(int argc, char **argv)
 						continue ;
 					}
 					else if (status == RECV_COMPLETE) {
-						
 						if (!pd.client->prepareRequest() || !pd.client->checkRequest()) {
-								conn->removeClient(pd);
+								pd.client->sendError(pd.error_code);
 							continue;
 						}
 						pd._current_time = std::time(0);
@@ -101,7 +99,12 @@ int		main(int argc, char **argv)
 				else if (!pd.is_listener && (conn->getEpollEvent(i).events & EPOLLOUT)) {
 					std::string method = pd.client->getHeader("Method");
 
-					if (pd.client->isRedirection())
+					if (pd.has_error) {
+						pd.client->sendOutErr(pd.error_code);
+						conn->removeClient(pd);
+						continue;
+					}
+					else if (pd.client->isRedirection())
 						pd.client->sendRedirectResponse();
 					else if (pd.client->isCgiScript())
 						pd.client->sendCgiResponse();
@@ -118,7 +121,7 @@ int		main(int argc, char **argv)
 						close(fd);
 						conn->removeClient(pd);
 					} 
-					else {
+					else  {
 						pd.client->resetForNextRequest();
 						pd._current_time = std::time(0);
 						conn->modifyEpollEvent(fd, EPOLLIN | EPOLLET);

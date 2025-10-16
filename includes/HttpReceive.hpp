@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpReceive.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaimesan <jaimesan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/15 19:21:03 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/16 15:40:31 by jaimesan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@
 #include <string>
 
 class ServerWrapper;
+class Connection; 
 
 struct Part
 {
@@ -59,6 +60,7 @@ class HttpReceive {
 	private:
 		int									_fd;
 		char								_request[BUFFER_SIZE];
+		Connection*							_conn;
 		std::map<std::string, std::string>	_headers;
 		std::vector<Part>					 parts;
 		std::ifstream						_file;
@@ -80,6 +82,17 @@ class HttpReceive {
 		
 	public:
 		HttpReceive(ServerWrapper& _server, std::map<std::string, Session>& session);
+		HttpReceive(ServerWrapper& server, std::map<std::string, Session>& session, Connection* conn)
+			:  _conn(conn) , _server(server){
+			this->_session = session;
+			this->user_accepts_cookies = false;
+			this->_is_cgi_script = false;
+			this->_is_redirect = false;
+			this->body_state = B_INCOMPLETE;
+			this->header_state = H_INCOMPLETE;
+			this->body_type = UNSET;
+			this->_total_bytes = 0;
+		}
 		~HttpReceive();
 		bool								prepareRequest();
 		RecvStatus							receiveRequest();
@@ -98,7 +111,7 @@ class HttpReceive {
 		std::map<std::string, Session>&		getSession();
 		void								setClientCookie();
 		bool								hasClientCookie();
-		
+		bool								sendOutErr(size_t error_code);
 		void								sendGetResponse();
 		void								sendPostResponse();
 		void								sendDeleteResponse();

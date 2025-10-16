@@ -43,10 +43,12 @@ struct PollData
     int             _current_time;
     bool            client_time_out;
     bool            client_allocated;
+    size_t          error_code;
+    bool            has_error;
     
 
-    PollData() : fd(-1), server_index(0), is_listener(false), client(NULL) {}
-    PollData(int _fd, size_t _i, bool _l) : fd(_fd), server_index(_i), is_listener(_l), client(NULL) {}
+    PollData() : fd(-1), server_index(0), is_listener(false), client(NULL), error_code(0), has_error(false) {}
+    PollData(int _fd, size_t _i, bool _l) : fd(_fd), server_index(_i), is_listener(_l), client(NULL), error_code(0), has_error(false) {}
 };
 
 
