@@ -53,8 +53,7 @@ RecvStatus	HttpReceive::receiveRequest() {
 			}
 			if (header_state == H_COMPLETE && _headers.find("Content-Length") != _headers.end() && checkContentLength(_headers["Content-Length"].c_str(), _server.getClientMaxBodySize()) > 0)
 				return (RECV_PAYLOAD_TOO_LARGE_ERROR);
-			if (header_state == H_COMPLETE && body_state == B_INCOMPLETE && body_type == CHUNKED) {
-				
+			if (header_state == H_COMPLETE && body_state == B_INCOMPLETE && body_type == CHUNKED) {	
 				if (!parseChunkedBody(_request_parse))
 					return (RECV_PAYLOAD_TOO_LARGE_ERROR);
 			}
@@ -69,9 +68,6 @@ RecvStatus	HttpReceive::receiveRequest() {
 			break ;
         }
     }
-	if (header_state == H_COMPLETE &&  body_state == B_INCOMPLETE && body_type == CHUNKED) {
-		return (RECV_INCOMPLETE);
-	}
 	if (_headers.find("Content-Length") != _headers.end() && _body_complete.empty()) {
 		_body_complete = _request_parse;
 	}

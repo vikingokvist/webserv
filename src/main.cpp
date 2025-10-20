@@ -76,11 +76,12 @@ int		main(int argc, char **argv)
     	        else if (!pd.is_listener && (conn->getEpollEvent(i).events & EPOLLIN)) {
 
 					RecvStatus status = pd.client->receiveRequest();
-
 					if (status == RECV_PAYLOAD_TOO_LARGE_ERROR || status == RECV_ERROR || status == RECV_CLOSED) {
 						if (status == RECV_PAYLOAD_TOO_LARGE_ERROR) {
-							conn->removeClient(pd);
+							pd.client->sendError(413);
+							continue;
 						}
+						conn->removeClient(pd);
 						continue ;
 					}
 					else if (status == RECV_INCOMPLETE) {
