@@ -583,7 +583,7 @@ void			HttpReceive::sendPostResponse() {HttpSend::sendPostResponse(getFd(), *thi
 
 void			HttpReceive::sendHeadResponse() {HttpSend::sendHeadResponse(getFd(), *this); }
 
-void			HttpReceive::sendCgiResponse() {HttpSend::sendCgiResponse(getFd(), *this); }
+void			HttpReceive::sendCgiResponse() {HttpSend::sendCgiResponse(getFd(), *this);}
 
 void			HttpReceive::sendRedirectResponse() {HttpSend::sendRedirectResponse(getFd(), *this, getBestMatch()); }
 

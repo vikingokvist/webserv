@@ -7,9 +7,6 @@
 Servers* servers = NULL;
 Connection* conn = NULL;
 
-// Volatil es para que si recibe una señar en medio del loop, obliga al programa a leer el valor de
-// la variable directamente de la memoria y no leerla desde la cache que tenia guadardada justo antes de hacer CONTROL C
-// Entonces vuelve al loop y g_stop se habra actualizado.
 volatile sig_atomic_t g_stop = 0;
 
 void	handle_sigint(int sig) {
@@ -99,7 +96,7 @@ int		main(int argc, char **argv)
     	        }
 				else if (!pd.is_listener && (conn->getEpollEvent(i).events & EPOLLOUT)) {
 					std::string method = pd.client->getHeader("Method");
-
+					
 					if (pd.has_error) {
 						pd.client->sendOutErr(pd.error_code);
 						conn->removeClient(pd);

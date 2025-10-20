@@ -233,7 +233,6 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
     	send500(fd, _request); return ;
 	}
 	else if (pid == 0) {
-		
 		if (dup2(pipe_parent[0], STDIN_FILENO) == -1) {
 			std::cerr << "Child dup2() failed: " << strerror(errno) << std::endl;
 			close(pipe_parent[0]); close(pipe_parent[1]); close(pipe_child[0]); close(pipe_child[1]);
@@ -285,7 +284,6 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 		}
 	}
 	else {
-		
 		close(pipe_parent[0]);
 		close(pipe_child[1]);
 
@@ -295,46 +293,62 @@ void			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 		char buffer[4096];
 		std::string cgi_output;
 		ssize_t n;
-		
-		while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
-			cgi_output.append(buffer, n);
-		close(pipe_child[0]);
-	
-		size_t header_end = cgi_output.find("\r\n\r\n");
-		if (header_end == std::string::npos)
-			header_end = cgi_output.find("\n\n");
-
-		std::string headers, body;
-		if (header_end != std::string::npos) {
-			headers = cgi_output.substr(0, header_end);
-			body = cgi_output.substr(header_end + (cgi_output[header_end] == '\r' ? 4 : 2));
-		}
-		else
-			body = cgi_output;
-		size_t content_length = body.size();
-		std::ostringstream oss;
-		oss << "HTTP/1.1 200 OK\r\n";
-		if (_request.hasClientCookie()) {
-
-			bool is_new_session = false;
-			std::string session_id = ensureSession(_request.getSession(), _request.getHeader("Cookie"), is_new_session);
-			if (is_new_session)
-				oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
-			std::string color = _request.getHeader("X-Color");
-			if (!color.empty())
-				oss << "Set-Cookie: color=" << color << "; Path=/;\r\n";
-		}
-		oss << headers << "\r\nContent-Length: " << content_length << "\r\n\r\n" << body;
-    	if (_request.getHeader("Connection") == "keep-alive")
-			oss << "Connection: keep-alive\r\n\r\n";
-    	else
-			oss << "Connection: close\r\n\r\n";
-
-		std::string http_response = oss.str();
-		send(_request.getFd(), http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
-
+		int wait_time = 5;
+		int slept = 0;
 		int status;
-		waitpid(pid, &status, 0);
+		
+		pid_t ret = waitpid(pid, &status, WNOHANG);
+		while (ret == 0 && slept < wait_time) {
+			sleep(1);
+			slept++;
+			ret = waitpid(pid, &status, WNOHANG);
+		}
+		if (ret == 0) {
+			kill(pid, SIGKILL);
+			waitpid(pid, &status, 0);
+			close(pipe_child[0]);
+			send500(fd, _request);
+		} else {
+			while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
+				cgi_output.append(buffer, n);
+			close(pipe_child[0]);
+			std::cout <<  "fsefsef" << std::endl;
+			size_t header_end = cgi_output.find("\r\n\r\n");
+			if (header_end == std::string::npos)
+				header_end = cgi_output.find("\n\n");
+	
+			std::string headers, body;
+			if (header_end != std::string::npos) {
+				headers = cgi_output.substr(0, header_end);
+				body = cgi_output.substr(header_end + (cgi_output[header_end] == '\r' ? 4 : 2));
+			}
+			else
+				body = cgi_output;
+			size_t content_length = body.size();
+			std::ostringstream oss;
+			oss << "HTTP/1.1 200 OK\r\n";
+			if (_request.hasClientCookie()) {
+	
+				bool is_new_session = false;
+				std::string session_id = ensureSession(_request.getSession(), _request.getHeader("Cookie"), is_new_session);
+				if (is_new_session)
+					oss << "Set-Cookie: session_id=" << session_id << "; Path=/; HttpOnly\r\n";
+				std::string color = _request.getHeader("X-Color");
+				if (!color.empty())
+					oss << "Set-Cookie: color=" << color << "; Path=/;\r\n";
+			}
+			oss << headers << "\r\nContent-Length: " << content_length << "\r\n\r\n" << body;
+			if (_request.getHeader("Connection") == "keep-alive")
+				oss << "Connection: keep-alive\r\n\r\n";
+			else
+				oss << "Connection: close\r\n\r\n";
+	
+			std::string http_response = oss.str();
+			send(_request.getFd(), http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
+	
+			int status;
+			waitpid(pid, &status, 0);
+		}
 	}
 }
 
