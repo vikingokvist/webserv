@@ -68,7 +68,6 @@ int main(int argc, char **argv)
 			conn->removeTimeoutClients(std::time(0));
 			for (int i = 0; i < ready_fds; i++)
 			{
-
 				int fd = conn->getEpollEvent(i).data.fd;
 				if (conn->getFdMap().find(fd) == conn->getFdMap().end())
 					continue;
@@ -86,10 +85,7 @@ int main(int argc, char **argv)
 					if (status == RECV_PAYLOAD_TOO_LARGE_ERROR || status == RECV_ERROR || status == RECV_CLOSED)
 					{
 						if (status == RECV_PAYLOAD_TOO_LARGE_ERROR)
-						{
 							pd.client->sendError(413);
-							continue;
-						}
 						conn->removeClient(pd);
 						continue;
 					}
@@ -112,57 +108,47 @@ int main(int argc, char **argv)
 				else if (!pd.is_listener && (conn->getEpollEvent(i).events & EPOLLOUT))
 				{
 					std::string method = pd.client->getHeader("Method");
+					bool send_error = true;
 
-					if (pd.has_error)
-					{
+					if (!pd.has_error) {
+						if (pd.client->getIsAutoIndex())
+						{
+							send_error = pd.client->sendAutoResponse(pd.client->getAutoIndex());
+							if (!send_error)
+								pd.client->sendOutErr(403);
+						}
+						else if (pd.client->isRedirection())
+						{
+							send_error = pd.client->sendRedirectResponse();
+							if (!send_error)
+								pd.client->sendOutErr(404);
+						}
+						else if (pd.client->isCgiScript())
+						{
+							send_error = pd.client->sendCgiResponse();
+							if (!send_error)
+								pd.client->sendOutErr(500);
+						}			
+						else if (method == "GET")
+							send_error = pd.client->sendGetResponse();
+						else if (method == "POST")
+							send_error = pd.client->sendPostResponse();
+						else if (method == "DELETE")
+							send_error = pd.client->sendDeleteResponse();
+						else if (method == "HEAD")
+							send_error = pd.client->sendHeadResponse();
+
+						if (pd.client->getHeader("Connection") != "keep-alive" || send_error == false)
+							conn->removeClient(pd);
+						else
+						{
+							pd.client->resetForNextRequest();
+							pd._current_time = std::time(0);
+							conn->modifyEpollEvent(fd, EPOLLIN | EPOLLET);
+						}
+					} else {
 						pd.client->sendOutErr(pd.error_code);
 						conn->removeClient(pd);
-						continue;
-					}
-
-					if (pd.client->getIsAutoIndex())
-					{
-						if (!pd.client->sendAutoResponse(pd.client->getAutoIndex()))
-						{
-							pd.client->sendOutErr(403);
-							conn->removeClient(pd);
-							continue;
-						}
-					}
-					else if (pd.client->isRedirection())
-					{
-						if (!pd.client->sendRedirectResponse())
-						{
-							pd.client->sendOutErr(404);
-							conn->removeClient(pd);
-							continue;
-						}
-					}
-					else if (pd.client->isCgiScript())
-					{
-						if (!pd.client->sendCgiResponse())
-						{
-							pd.client->sendOutErr(500);
-							conn->removeClient(pd);
-							continue;
-						}
-					}			
-					else if (method == "GET")
-						pd.client->sendGetResponse();
-					else if (method == "POST")
-						pd.client->sendPostResponse();
-					else if (method == "DELETE")
-						pd.client->sendDeleteResponse();
-					else if (method == "HEAD")
-						pd.client->sendHeadResponse();
-
-					if (pd.client->getHeader("Connection") != "keep-alive")
-						conn->removeClient(pd);
-					else
-					{
-						pd.client->resetForNextRequest();
-						pd._current_time = std::time(0);
-						conn->modifyEpollEvent(fd, EPOLLIN | EPOLLET);
 					}
 				}
 			}

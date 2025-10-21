@@ -2,7 +2,7 @@
 #include "../includes/HttpReceive.hpp"
 #include "../includes/webserv.hpp"
 
-void		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
+bool		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
 	body_stream << _request.getFile().rdbuf();
@@ -29,10 +29,13 @@ void		HttpSend::sendGetResponse(int fd, HttpReceive& _request) {
 	oss << body;
 
 	std::string response = oss.str();
-	send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
+	return (true);
 }
 
-void		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
+bool		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
 	body_stream << _request.getFile().rdbuf();
@@ -59,10 +62,13 @@ void		HttpSend::sendPostResponse(int fd, HttpReceive& _request) {
 	oss << body;
 
 	std::string response = oss.str();
-	send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
+	return (true);
 }
 
-void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
+bool		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
 
 	std::ostringstream body_stream;
 	body_stream << _request.getFile().rdbuf();
@@ -87,10 +93,13 @@ void		HttpSend::sendDeleteResponse(int fd, HttpReceive& _request) {
 	oss << body;
 
 	std::string response = oss.str();
-	send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
+	return (true);
 }
 
-void		HttpSend::sendHeadResponse(int fd, HttpReceive& _request) {
+bool		HttpSend::sendHeadResponse(int fd, HttpReceive& _request) {
 	
 	std::ifstream file(_request.getFullPath().c_str(), std::ios::binary | std::ios::ate);
 	std::streamsize file_size = file.tellg();
@@ -116,7 +125,10 @@ void		HttpSend::sendHeadResponse(int fd, HttpReceive& _request) {
     else
 		oss << "Connection: close\r\n\r\n";
 	std::string response = oss.str();
-	send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
+	return (true);
 }
 
 bool		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_match) {
@@ -151,7 +163,9 @@ bool		HttpSend::sendRedirectResponse(int fd, HttpReceive& _request, size_t best_
 			oss << "Connection: close\r\n\r\n";
 	}
     response = oss.str();
-	::send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
 	return (true);
 }
 
@@ -209,7 +223,9 @@ bool		HttpSend::sendAutoResponse(int fd, HttpReceive& _request, const std::strin
 		oss << "Connection: close\r\n\r\n";
 	oss << bodyStr;
 	std::string response = oss.str();
-	::send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
 	return (true);
 }
 
@@ -287,7 +303,21 @@ bool			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 		close(pipe_parent[0]);
 		close(pipe_child[1]);
 
-		write(pipe_parent[1], _request.getPostBody().c_str(), _request.getPostBodySize());
+		std::string post_body = _request.getPostBody();
+		const char* data = post_body.c_str();
+		size_t data_size = post_body.size();
+		size_t total_written = 0;
+
+		while (total_written < data_size) {
+			ssize_t rit = write(pipe_parent[1], data + total_written, data_size - total_written);
+			if (rit == -1) {
+				close(pipe_parent[1]);
+				kill(pid, SIGKILL);
+				waitpid(pid, NULL, 0); 
+				return (false);
+			}
+			total_written += rit;
+		}
 		close(pipe_parent[1]);
 
 		char buffer[4096];
@@ -304,13 +334,21 @@ bool			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 			ret = waitpid(pid, &status, WNOHANG);
 		}
 		if (ret == 0) {
+			close(pipe_child[0]);
 			kill(pid, SIGKILL);
 			waitpid(pid, &status, 0);
-			close(pipe_child[0]);
-			return false;
+			return (false);
 		} else {
-			while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
-				cgi_output.append(buffer, n);
+			while ((n = read(pipe_child[0], buffer, sizeof(buffer))) != 0) {
+				if (n > 0) {
+					cgi_output.append(buffer, n);
+				} else {
+					close(pipe_child[0]);
+					kill(pid, SIGKILL);
+					waitpid(pid, NULL, 0);
+					return (false);
+				}
+			}
 			close(pipe_child[0]);
 			size_t header_end = cgi_output.find("\r\n\r\n");
 			if (header_end == std::string::npos)
@@ -343,8 +381,13 @@ bool			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 				oss << "Connection: close\r\n\r\n";
 	
 			std::string http_response = oss.str();
-			send(_request.getFd(), http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
-	
+			ssize_t ret = send(_request.getFd(), http_response.c_str(), http_response.size(), MSG_NOSIGNAL);
+			if (ret == -1) {
+				close(pipe_child[0]);
+				kill(pid, SIGKILL);
+				waitpid(pid, &status, 0);
+				return (false);
+			}
 			int status;
 			waitpid(pid, &status, 0);
 		}
@@ -352,7 +395,7 @@ bool			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 	return true;
 }
 
-void        HttpSend::sendErr(int fd, HttpReceive& _request, int error_code) {
+bool        HttpSend::sendErr(int fd, HttpReceive& _request, int error_code) {
 
     std::ostringstream buf;
     std::string body;
@@ -399,7 +442,10 @@ void        HttpSend::sendErr(int fd, HttpReceive& _request, int error_code) {
     oss << body;
 
     response = oss.str();
-    ::send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
+	ssize_t ret = send(fd, response.c_str(),response.size(), MSG_NOSIGNAL);
+	if (ret == -1)
+		return (false);
+	return (true);
 }
 
 std::string		getStatusMsg(int error_code) {

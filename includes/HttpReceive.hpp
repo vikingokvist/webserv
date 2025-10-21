@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpReceive.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
+/*   By: jaimesan <jaimesan@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/21 12:47:24 by ctommasi         ###   ########.fr       */
+/*   Updated: 2025/10/21 15:09:29 by jaimesan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -79,7 +79,7 @@ class HttpReceive {
 		std::map<std::string, Session>		_session;
 		bool								_is_autoindex;
 		std::string							_autoindex_to;
-		typedef void						(HttpReceive::*Handler)();
+		typedef bool						(HttpReceive::*Handler)();
 		
 	public:
 		HttpReceive(ServerWrapper& _server, std::map<std::string, Session>& session);
@@ -116,31 +116,31 @@ class HttpReceive {
 		void								setClientCookie();
 		bool								hasClientCookie();
 		bool								sendOutErr(size_t error_code);
-		void								sendGetResponse();
-		void								sendPostResponse();
-		void								sendDeleteResponse();
-		void								sendHeadResponse();
+		bool								sendGetResponse();
+		bool								sendPostResponse();
+		bool								sendDeleteResponse();
+		bool								sendHeadResponse();
 		bool								sendAutoResponse(const std::string &direction_path);
 		bool								sendCgiResponse();
 		bool								sendRedirectResponse();
 		bool								sendError(size_t error_code);
-		void								send200Response();
-		void								send201Response();
-		void								send204Response();
-		void								send301Response();
-		void								send302Response();
-		void								send400Response();
-		void								send401Response();
-		void								send403Response();
-		void								send404Response();
-		void								send405Response();
-		void								send411Response();
-		void								send413Response();
-		void								send414Response();
-		void								send415Response();
-		void								send500Response();
-		void								send501Response();
-		void								send505Response();
+		bool								send200Response();
+		bool								send201Response();
+		bool								send204Response();
+		bool								send301Response();
+		bool								send302Response();
+		bool								send400Response();
+		bool								send401Response();
+		bool								send403Response();
+		bool								send404Response();
+		bool								send405Response();
+		bool								send411Response();
+		bool								send413Response();
+		bool								send414Response();
+		bool								send415Response();
+		bool								send500Response();
+		bool								send501Response();
+		bool								send505Response();
 		bool								isRedirection();
 		bool								isCgiScript();
 	

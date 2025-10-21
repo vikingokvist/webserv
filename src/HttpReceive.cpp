@@ -57,7 +57,6 @@ RecvStatus	HttpReceive::receiveRequest() {
 				if (!parseChunkedBody(_request_parse))
 					return (RECV_PAYLOAD_TOO_LARGE_ERROR);
 			}
-
         }
 		else if (bytes_received == 0) {
             return (RECV_CLOSED);
@@ -146,7 +145,6 @@ bool			HttpReceive::prepareRequest() {
 	
 	if (best_match == -1) 
 		return (sendError(404));
-		
 	_location = server.getLocation(best_match);
 	setBestMatch(best_match);
 	
@@ -296,6 +294,10 @@ bool	HttpReceive::methodPOST(ServerWrapper &server, size_t best_match) {
 			if (!file_post)
 				return (std::cerr << ERROR_CREATE_FILE << full_path << std::endl, false);
 			file_post.write(parts[i].content.data(), parts[i].content.size());
+			if (file_post.fail() || file_post.bad()) {
+				file_post.close();
+				return (false);
+			}
 			file_post.close();
 		}
 	}
@@ -542,7 +544,7 @@ bool	HttpReceive::sendOutErr(size_t error_code) {
 		handlers[505] = &HttpReceive::send505Response;
 	}
 	if (error_code < 506 && handlers[error_code])
-		(this->*handlers[error_code])();
+		 return (this->*handlers[error_code])();
 	return (false);
 }
 
@@ -586,50 +588,50 @@ std::string		HttpReceive::getPostBody() {return (this->_body_complete);}
 
 bool			HttpReceive::sendAutoResponse(const std::string &direction_path) {return HttpSend::sendAutoResponse(getFd(), *this, direction_path); }
 		
-void			HttpReceive::sendDeleteResponse() {HttpSend::sendDeleteResponse(getFd(), *this); }
+bool			HttpReceive::sendDeleteResponse() {return HttpSend::sendDeleteResponse(getFd(), *this); }
 
-void			HttpReceive::sendGetResponse() {HttpSend::sendGetResponse(getFd(), *this); }
+bool			HttpReceive::sendGetResponse() {return HttpSend::sendGetResponse(getFd(), *this); }
 
-void			HttpReceive::sendPostResponse() {HttpSend::sendPostResponse(getFd(), *this); }
+bool			HttpReceive::sendPostResponse() {return HttpSend::sendPostResponse(getFd(), *this); }
 
-void			HttpReceive::sendHeadResponse() {HttpSend::sendHeadResponse(getFd(), *this); }
+bool			HttpReceive::sendHeadResponse() {return HttpSend::sendHeadResponse(getFd(), *this); }
 
 bool			HttpReceive::sendCgiResponse() { return HttpSend::sendCgiResponse(getFd(), *this);}
 
 bool			HttpReceive::sendRedirectResponse() {return HttpSend::sendRedirectResponse(getFd(), *this, getBestMatch()); }
 
-void			HttpReceive::send200Response() { HttpSend::send200(getFd(), *this); }
+bool			HttpReceive::send200Response() { return HttpSend::send200(getFd(), *this); }
 
-void			HttpReceive::send201Response() { HttpSend::send201(getFd(), *this); }
+bool			HttpReceive::send201Response() {  return HttpSend::send201(getFd(), *this); }
 
-void			HttpReceive::send204Response() { HttpSend::send204(getFd(), *this); }
+bool			HttpReceive::send204Response() { return HttpSend::send204(getFd(), *this); }
 
-void			HttpReceive::send301Response() { HttpSend::send301(getFd(), *this); }
+bool			HttpReceive::send301Response() { return HttpSend::send301(getFd(), *this); }
 
-void			HttpReceive::send302Response() { HttpSend::send302(getFd(), *this); }
+bool			HttpReceive::send302Response() { return HttpSend::send302(getFd(), *this); }
 
-void			HttpReceive::send400Response() { HttpSend::send400(getFd(), *this); }
+bool			HttpReceive::send400Response() { return HttpSend::send400(getFd(), *this); }
 
-void			HttpReceive::send401Response() { HttpSend::send401(getFd(), *this); }
+bool			HttpReceive::send401Response() { return HttpSend::send401(getFd(), *this); }
 
-void			HttpReceive::send403Response() { HttpSend::send403(getFd(), *this); }
+bool			HttpReceive::send403Response() { return HttpSend::send403(getFd(), *this); }
 
-void			HttpReceive::send404Response() { HttpSend::send404(getFd(), *this); }
+bool			HttpReceive::send404Response() { return HttpSend::send404(getFd(), *this); }
 
-void			HttpReceive::send405Response() { HttpSend::send405(getFd(), *this); }
+bool			HttpReceive::send405Response() { return HttpSend::send405(getFd(), *this); }
 
-void			HttpReceive::send411Response() { HttpSend::send411(getFd(), *this); }
+bool			HttpReceive::send411Response() { return HttpSend::send411(getFd(), *this); }
 
-void			HttpReceive::send413Response() { HttpSend::send413(getFd(), *this); }
+bool			HttpReceive::send413Response() { return HttpSend::send413(getFd(), *this); }
 
-void			HttpReceive::send414Response() { HttpSend::send414(getFd(), *this); }
+bool			HttpReceive::send414Response() { return HttpSend::send414(getFd(), *this); }
 
-void			HttpReceive::send415Response() { HttpSend::send415(getFd(), *this); }
+bool			HttpReceive::send415Response() { return HttpSend::send415(getFd(), *this); }
 
-void			HttpReceive::send500Response() { HttpSend::send500(getFd(), *this); }
+bool			HttpReceive::send500Response() { return HttpSend::send500(getFd(), *this); }
 
-void			HttpReceive::send501Response() { HttpSend::send501(getFd(), *this); }
+bool			HttpReceive::send501Response() { return HttpSend::send501(getFd(), *this); }
 
-void			HttpReceive::send505Response() { HttpSend::send505(getFd(), *this); }
+bool			HttpReceive::send505Response() { return HttpSend::send505(getFd(), *this); }
 
 

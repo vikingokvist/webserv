@@ -28,35 +28,33 @@ class HttpSend
 {
 	
 	public:
-		static void sendErr(int fd, HttpReceive& _request, int error_code);
+		static bool sendErr(int fd, HttpReceive& _request, int error_code);
 		
-		static void	sendGetResponse(int fd, HttpReceive& _request);
-		static void	sendPostResponse(int fd, HttpReceive& _request);
-		static void	sendDeleteResponse(int fd, HttpReceive& _request);
-		static void	sendHeadResponse(int fd, HttpReceive& _request);
+		static bool	sendGetResponse(int fd, HttpReceive& _request);
+		static bool	sendPostResponse(int fd, HttpReceive& _request);
+		static bool	sendDeleteResponse(int fd, HttpReceive& _request);
+		static bool	sendHeadResponse(int fd, HttpReceive& _request);
 		static bool	sendAutoResponse(int fd, HttpReceive& _request, const std::string &direction_path);
 		static bool	sendRedirectResponse(int fd, HttpReceive& _request, size_t best_match);
 		static bool	sendCgiResponse(int fd, HttpReceive& _request);
 
-		static void send200(int fd, HttpReceive& _request) { sendErr(fd, _request, 200); }
-		static void send201(int fd, HttpReceive& _request) { sendErr(fd, _request, 201); }
-		static void send204(int fd, HttpReceive& _request) { sendErr(fd, _request, 204); }
-		static void send301(int fd, HttpReceive& _request) { sendErr(fd, _request, 301); }
-		static void send302(int fd, HttpReceive& _request) { sendErr(fd, _request, 302); }
-		static void send400(int fd, HttpReceive& _request) { sendErr(fd, _request, 400); }
-		static void send401(int fd, HttpReceive& _request) { sendErr(fd, _request, 401); }
-		static void send403(int fd, HttpReceive& _request) { sendErr(fd, _request, 403); }
-		static void send404(int fd, HttpReceive& _request) { sendErr(fd, _request, 404); }
-		static void send405(int fd, HttpReceive& _request) { sendErr(fd, _request, 405); }
-		static void send411(int fd, HttpReceive& _request) { sendErr(fd, _request, 411); }
-		static void send413(int fd, HttpReceive& _request) { sendErr(fd, _request, 413); }
-		static void send414(int fd, HttpReceive& _request) { sendErr(fd, _request, 414); }
-		static void send415(int fd, HttpReceive& _request) { sendErr(fd, _request, 415); }
-		static void send500(int fd, HttpReceive& _request) { sendErr(fd, _request, 500); }
-		static void send501(int fd, HttpReceive& _request) { sendErr(fd, _request, 501); }
-		static void send505(int fd, HttpReceive& _request) { sendErr(fd, _request, 505); }
-
-
+		static bool send200(int fd, HttpReceive& _request) {return sendErr(fd, _request, 200); }
+		static bool send201(int fd, HttpReceive& _request) {return sendErr(fd, _request, 201); }
+		static bool send204(int fd, HttpReceive& _request) {return sendErr(fd, _request, 204); }
+		static bool send301(int fd, HttpReceive& _request) {return sendErr(fd, _request, 301); }
+		static bool send302(int fd, HttpReceive& _request) {return sendErr(fd, _request, 302); }
+		static bool send400(int fd, HttpReceive& _request) {return sendErr(fd, _request, 400); }
+		static bool send401(int fd, HttpReceive& _request) {return sendErr(fd, _request, 401); }
+		static bool send403(int fd, HttpReceive& _request) {return sendErr(fd, _request, 403); }
+		static bool send404(int fd, HttpReceive& _request) {return sendErr(fd, _request, 404); }
+		static bool send405(int fd, HttpReceive& _request) {return sendErr(fd, _request, 405); }
+		static bool send411(int fd, HttpReceive& _request) {return sendErr(fd, _request, 411); }
+		static bool send413(int fd, HttpReceive& _request) {return sendErr(fd, _request, 413); }
+		static bool send414(int fd, HttpReceive& _request) {return sendErr(fd, _request, 414); }
+		static bool send415(int fd, HttpReceive& _request) {return sendErr(fd, _request, 415); }
+		static bool send500(int fd, HttpReceive& _request) {return sendErr(fd, _request, 500); }
+		static bool send501(int fd, HttpReceive& _request) {return sendErr(fd, _request, 501); }
+		static bool send505(int fd, HttpReceive& _request) {return sendErr(fd, _request, 505); }
 };
 
 std::string		getStatusMsg(int error_code);
