@@ -219,6 +219,7 @@ void    Connection::bindAndListen(ServerSocket& s_socket) {
         throw (std::runtime_error("Failed to bind to port " + oss.str()));
 	}
 	if (listen(s_socket._fd, s_socket._client_max_body_size) < 0) {
+
         close(s_socket._fd);
         throw (std::runtime_error("Failed to listen on socket."));
 	}
