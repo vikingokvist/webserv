@@ -27,7 +27,7 @@ std::string parseSessionId(const std::string &cookie_header) {
     std::size_t end = cookie_header.find(";", pos);
     if (end == std::string::npos)
         end = cookie_header.size();
-    return cookie_header.substr(pos, end - pos);
+    return (cookie_header.substr(pos, end - pos));
 };
     
 std::string generateSessionId() {
@@ -42,7 +42,7 @@ std::string generateSessionId() {
         int r = std::rand() % 256;
         oss << std::hex << std::setw(2) << std::setfill('0') << r;
     }
-    return oss.str();
+    return (oss.str());
 }
 
 std::string		ensureSession(std::map<std::string, Session>& session, std::string session_id, bool& is_new_session) {

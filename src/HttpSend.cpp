@@ -312,7 +312,6 @@ bool			HttpSend::sendCgiResponse(int fd, HttpReceive& _request) {
 			while ((n = read(pipe_child[0], buffer, sizeof(buffer))) > 0)
 				cgi_output.append(buffer, n);
 			close(pipe_child[0]);
-			std::cout <<  "fsefsef" << std::endl;
 			size_t header_end = cgi_output.find("\r\n\r\n");
 			if (header_end == std::string::npos)
 				header_end = cgi_output.find("\n\n");
@@ -401,7 +400,6 @@ void        HttpSend::sendErr(int fd, HttpReceive& _request, int error_code) {
 
     response = oss.str();
     ::send(fd, response.c_str(), response.size(), MSG_NOSIGNAL);
-    ::close(fd);
 }
 
 std::string		getStatusMsg(int error_code) {
@@ -423,9 +421,6 @@ std::string		getStatusMsg(int error_code) {
 	status_msg[415] = " Unsupported Media Type";
 	status_msg[500] = " Internal Server Error";
 	status_msg[501] = " Not Implemented";
-	status_msg[502] = " Bad Gateway";
-	status_msg[503] = " Service Unavailable";
-	status_msg[504] = " Gateway Timeout";
 	status_msg[505] = " HTTP Version Not Supported";
 	if (!status_msg[error_code].empty())
 		return (status_msg[error_code]);

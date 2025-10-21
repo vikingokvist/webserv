@@ -16,7 +16,7 @@ chunks = [
 with socket.create_connection((HOST, PORT)) as sock:
     # Send the headers first
     headers = (
-        "POST /cgi/login.py HTTP/1.1\r\n"
+        "POST /login/login.py HTTP/1.1\r\n"
         "Host: 127.0.0.1:9999\r\n"
         "Transfer-Encoding: chunked\r\n"
         "Content-Type: application/x-www-form-urlencoded\r\n"
@@ -31,7 +31,7 @@ with socket.create_connection((HOST, PORT)) as sock:
         sock.sendall(chunk)
         sock.sendall(b"\r\n")
         print(f"Sent chunk: {chunk}")
-        time.sleep(2)  # optional delay to simulate slow sending
+        time.sleep(1)  # optional delay to simulate slow sending
 
     # Send the terminating chunk
     sock.sendall(b"0\r\n\r\n")

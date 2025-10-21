@@ -251,8 +251,10 @@ void     ConfigParser::clientMaxBodySizeToken(ParserVariables& vars) {
         number_part = vars.token.substr(0, len - 1);
     }
     else
-        throw (UnknownVariableValueException(temp_var, "server"));
+        throw (ClientMaxBodySizeValueException(temp_var, "server"));
     vars.cur_server.client_max_body_size = str_to_unsigned_long(number_part) * multiplier;
+    if (vars.cur_server.client_max_body_size > MAX_SIZE)
+        throw (ClientMaxBodySizeException(temp_var, "server"));
     vars.cur_server.has_client_max_body_size = "true";
 }
 

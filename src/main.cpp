@@ -124,7 +124,6 @@ int main(int argc, char **argv)
 					{
 						if (!pd.client->sendAutoResponse(pd.client->getAutoIndex()))
 						{
-							pd.has_error = true;
 							pd.client->sendOutErr(403);
 							conn->removeClient(pd);
 							continue;
@@ -134,8 +133,7 @@ int main(int argc, char **argv)
 					{
 						if (!pd.client->sendRedirectResponse())
 						{
-							pd.has_error = true;
-							pd.client->sendOutErr(302);
+							pd.client->sendOutErr(404);
 							conn->removeClient(pd);
 							continue;
 						}
@@ -144,7 +142,6 @@ int main(int argc, char **argv)
 					{
 						if (!pd.client->sendCgiResponse())
 						{
-							pd.has_error = true;
 							pd.client->sendOutErr(500);
 							conn->removeClient(pd);
 							continue;

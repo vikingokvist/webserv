@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   HttpReceive.hpp                                    :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: jaimesan <jaimesan@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ctommasi <ctommasi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/06/17 13:13:42 by jaimesan          #+#    #+#             */
-/*   Updated: 2025/10/20 16:48:52 by jaimesan         ###   ########.fr       */
+/*   Updated: 2025/10/21 12:47:24 by ctommasi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -140,9 +140,6 @@ class HttpReceive {
 		void								send415Response();
 		void								send500Response();
 		void								send501Response();
-		void								send502Response();
-		void								send503Response();
-		void								send504Response();
 		void								send505Response();
 		bool								isRedirection();
 		bool								isCgiScript();

@@ -68,7 +68,7 @@ bool			isDirectory(const char* path) {
 
 bool			isValidHttpVersion(const std::string& version) {
 	
-	return (version == "HTTP/1.0" || version == "HTTP/1.1");
+	return (version == "HTTP/1.1");
 }
 
 bool	isMissingRequiredHeaders(std::map<std::string, std::string> &headers) {

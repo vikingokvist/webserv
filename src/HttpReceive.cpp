@@ -60,14 +60,15 @@ RecvStatus	HttpReceive::receiveRequest() {
 
         }
 		else if (bytes_received == 0) {
-
             return (RECV_CLOSED);
         }
 		else {
-
 			break ;
         }
     }
+	if (header_state == H_COMPLETE && body_state == B_INCOMPLETE && body_type == CHUNKED) {
+		return (RECV_INCOMPLETE);
+	}
 	if (_headers.find("Content-Length") != _headers.end() && _body_complete.empty()) {
 		_body_complete = _request_parse;
 	}
@@ -538,9 +539,6 @@ bool	HttpReceive::sendOutErr(size_t error_code) {
 		handlers[414] = &HttpReceive::send414Response;
 		handlers[500] = &HttpReceive::send500Response;
 		handlers[501] = &HttpReceive::send501Response;
-		handlers[502] = &HttpReceive::send502Response;
-		handlers[503] = &HttpReceive::send503Response;
-		handlers[504] = &HttpReceive::send504Response;
 		handlers[505] = &HttpReceive::send505Response;
 	}
 	if (error_code < 506 && handlers[error_code])
@@ -631,12 +629,6 @@ void			HttpReceive::send415Response() { HttpSend::send415(getFd(), *this); }
 void			HttpReceive::send500Response() { HttpSend::send500(getFd(), *this); }
 
 void			HttpReceive::send501Response() { HttpSend::send501(getFd(), *this); }
-
-void			HttpReceive::send502Response() { HttpSend::send502(getFd(), *this); }
-
-void			HttpReceive::send503Response() { HttpSend::send503(getFd(), *this); }
-
-void			HttpReceive::send504Response() { HttpSend::send504(getFd(), *this); }
 
 void			HttpReceive::send505Response() { HttpSend::send505(getFd(), *this); }
 

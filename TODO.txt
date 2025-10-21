@@ -1,4 +1,0 @@
-corregir leak cuando es error en sendCgiResponse -> SI
-Pasados 5 segundos del cgi y salir retornar error 500 y cerrar todo -> SI
-cgi autoindex hacer que se mande en epollout -> SI
-En principio esta todo

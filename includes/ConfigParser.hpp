@@ -3,6 +3,7 @@
 
 #include "./webserv.hpp"
 
+const uint64_t MAX_SIZE = 4294967296ULL;
 
 struct LocationConfig
 {
@@ -129,6 +130,15 @@ class ConfigParser
             const char* what() const throw() { return _msg.c_str(); }
         };
         
+
+        class ClientMaxBodySizeValueException : public std::exception {
+            std::string _msg;
+        public:
+            ClientMaxBodySizeValueException(const std::string& token, const std::string& context) throw() {
+                _msg = "[" + context + " ] => \"" + token + "\" <= \033[1;31m client_max_body_size value should be a number followed by [m/M/g/G/k/K].\033[0m";}
+            virtual ~ClientMaxBodySizeValueException() throw() {}
+            const char* what() const throw() { return _msg.c_str(); }
+        };
         class ExtraVariablesException : public std::exception {
             std::string _msg;
         public:
@@ -138,6 +148,16 @@ class ConfigParser
             const char* what() const throw() { return _msg.c_str(); }
         };
         
+        class ClientMaxBodySizeException : public std::exception {
+        	std::string _msg;
+        public:
+        	ClientMaxBodySizeException(const std::string& token, const std::string& context) throw() {
+        		_msg = "[" + context + " ] => \"" + token + "\" <= \033[1;31m client_max_body_size exceeds 4 GiB limit.\033[0m";
+        	}
+        	virtual ~ClientMaxBodySizeException() throw() {}
+        	const char* what() const throw() { return _msg.c_str(); }
+        };
+
         class UnknownVariableValueException : public std::exception {
             std::string _msg;
         public:

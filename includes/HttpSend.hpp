@@ -54,9 +54,6 @@ class HttpSend
 		static void send415(int fd, HttpReceive& _request) { sendErr(fd, _request, 415); }
 		static void send500(int fd, HttpReceive& _request) { sendErr(fd, _request, 500); }
 		static void send501(int fd, HttpReceive& _request) { sendErr(fd, _request, 501); }
-		static void send502(int fd, HttpReceive& _request) { sendErr(fd, _request, 502); }
-		static void send503(int fd, HttpReceive& _request) { sendErr(fd, _request, 503); }
-		static void send504(int fd, HttpReceive& _request) { sendErr(fd, _request, 504); }
 		static void send505(int fd, HttpReceive& _request) { sendErr(fd, _request, 505); }
 
 
