@@ -452,6 +452,8 @@ void	HttpReceive::resetForNextRequest() {
 	body_state = B_INCOMPLETE;
 	body_type = UNSET;
     _best_match = -1;
+	_is_autoindex = false;
+	_autoindex_to.clear();
 }
 
 bool			HttpReceive::fileExistsAndReadable(const char* path, int mode) {

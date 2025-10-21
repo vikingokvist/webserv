@@ -64,9 +64,7 @@ int main(int argc, char **argv)
 
 			int ready_fds = epoll_wait(conn->getEpollFd(), conn->getEpollEvents(), MAX_EVENTS, EPOLL_TIME_OUT);
 			if (ready_fds == -1)
-			{
 				break;
-			}
 			conn->removeTimeoutClients(std::time(0));
 			for (int i = 0; i < ready_fds; i++)
 			{
@@ -128,9 +126,9 @@ int main(int argc, char **argv)
 						{
 							pd.has_error = true;
 							pd.client->sendOutErr(403);
+							conn->removeClient(pd);
+							continue;
 						}
-						conn->removeClient(pd);
-						continue;
 					}
 					else if (pd.client->isRedirection())
 					{
@@ -138,9 +136,9 @@ int main(int argc, char **argv)
 						{
 							pd.has_error = true;
 							pd.client->sendOutErr(302);
+							conn->removeClient(pd);
+							continue;
 						}
-						conn->removeClient(pd);
-						continue;
 					}
 					else if (pd.client->isCgiScript())
 					{
@@ -148,13 +146,11 @@ int main(int argc, char **argv)
 						{
 							pd.has_error = true;
 							pd.client->sendOutErr(500);
+							conn->removeClient(pd);
+							continue;
 						}
-						conn->removeClient(pd);
-						continue;
-					}
-
-					
-					if (method == "GET")
+					}			
+					else if (method == "GET")
 						pd.client->sendGetResponse();
 					else if (method == "POST")
 						pd.client->sendPostResponse();
@@ -164,10 +160,7 @@ int main(int argc, char **argv)
 						pd.client->sendHeadResponse();
 
 					if (pd.client->getHeader("Connection") != "keep-alive")
-					{
-						close(fd);
 						conn->removeClient(pd);
-					}
 					else
 					{
 						pd.client->resetForNextRequest();
