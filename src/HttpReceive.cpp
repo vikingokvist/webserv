@@ -292,7 +292,7 @@ bool	HttpReceive::methodPOST(ServerWrapper &server, size_t best_match) {
 			std::string full_path = this->_headers["Upload Store"] + this->parts[i].filename;
 			std::ofstream file_post(full_path.c_str());
 			if (!file_post)
-				return (std::cerr << ERROR_CREATE_FILE << full_path << std::endl, false);
+				return (sendError(404));
 			file_post.write(parts[i].content.data(), parts[i].content.size());
 			if (file_post.fail() || file_post.bad()) {
 				file_post.close();
