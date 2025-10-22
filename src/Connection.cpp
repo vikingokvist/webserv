@@ -6,23 +6,35 @@ Connection::Connection(Servers& servers) : events(MAX_EVENTS) {
     this->epoll_fd =  epoll_create(1);
     if (this->epoll_fd == -1)
         throw (EpollInstanceException());
-    for (size_t i = 0; i < servers.size(); i++) {
 
-        ServerSocket s_socket;
-		for (size_t j = 0; j < servers[i].getCountIpPorts(); j++) {
+    try {
+        for (size_t i = 0; i < servers.size(); i++) {
 
-			s_socket._host = inet_addr(servers[i].getIps(j).c_str());
-			s_socket._port = htons(servers[i].getPorts(j));
-            s_socket._client_max_body_size = servers[i].getClientMaxBodySize();
-            s_socket._server_name = servers[i].getServerNamesList();
-            s_socket._sin_family = AF_INET;
-            setupSocket(s_socket);
-			bindAndListen(s_socket);
-            setNonBlocking(s_socket._fd);
-            addServerEpollEvent(s_socket._fd);
-            populateServerPollData(i, s_socket._fd, servers[i].getIps(j), servers[i].getPorts(j));
-		}
-        this->server_sockets.push_back(s_socket);
+            ServerSocket s_socket;
+            for (size_t j = 0; j < servers[i].getCountIpPorts(); j++) {
+
+                s_socket._host = inet_addr(servers[i].getIps(j).c_str());
+                s_socket._port = htons(servers[i].getPorts(j));
+                s_socket._client_max_body_size = servers[i].getClientMaxBodySize();
+                s_socket._server_name = servers[i].getServerNamesList();
+                s_socket._sin_family = AF_INET;
+                setupSocket(s_socket);
+                bindAndListen(s_socket);
+                setNonBlocking(s_socket._fd);
+                addServerEpollEvent(s_socket._fd);
+                populateServerPollData(i, s_socket._fd, servers[i].getIps(j), servers[i].getPorts(j));
+            }
+            this->server_sockets.push_back(s_socket);
+        }
+    }
+    catch (const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        for (std::map<int, PollData>::iterator it = this->fd_map.begin(); it != this->fd_map.end(); ++it) {
+            close(it->first);
+        }
+        if (this->epoll_fd >= 0)
+            close(this->epoll_fd);
+        throw;
     }
 }
 

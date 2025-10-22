@@ -28,12 +28,21 @@ int free_all()
 		}
 		for (size_t i = 0; i < fds_to_remove.size(); i++)
 		{
-			std::map<int, PollData>::iterator it = conn->getFdMap().find(fds_to_remove[i]);
-			if (it != conn->getFdMap().end())
+			int fd = fds_to_remove[i];
+			std::map<int, PollData>::iterator it = conn->getFdMap().find(fd);
+			if (it == conn->getFdMap().end())
+				continue;
+
+			PollData &pd = it->second;
+			if (pd.is_listener)
 			{
-				conn->removeClient(it->second);
+				epoll_ctl(conn->getEpollFd(), EPOLL_CTL_DEL, fd, NULL);
+				close(fd);
 			}
+			else
+				conn->removeClient(pd);
 		}
+		close(conn->getEpollFd());
 		delete conn;
 		conn = NULL;
 	}
@@ -57,7 +66,7 @@ int main(int argc, char **argv)
 
 		servers = new Servers(conf_file);
 		conn = new Connection(*servers);
-
+		
 		signal(SIGINT, handle_sigint);
 		while (!g_stop)
 		{
